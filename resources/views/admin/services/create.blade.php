@@ -15,7 +15,7 @@
     <div class="max-w-2xl rounded-2xl border border-border bg-surface p-5 sm:p-6">
         <form method="POST" action="{{ route('admin.services.store') }}">
             @csrf
-            @include('admin.services.form')
+            @include('admin.services.form', ['service' => null, 'categories' => $categories, 'tiers' => $tiers])
 
             <div class="mt-6 flex flex-wrap gap-3">
                 <x-primary-button>Simpan layanan</x-primary-button>

@@ -2,13 +2,46 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\Order;
+use App\Models\Service;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function index(): View
     {
-        return view('admin.dashboard');
+        $pendingCount = Order::query()->where('status', OrderStatus::PendingPayment)->count();
+        $paidCount = Order::query()->where('status', OrderStatus::Paid)->count();
+        $processingCount = Order::query()->where('status', OrderStatus::Processing)->count();
+        $readyCount = Order::query()->where('status', OrderStatus::Ready)->count();
+        $activeServices = Service::query()->active()->count();
+
+        $recentOrders = Order::query()
+            ->with(['customer', 'items'])
+            ->withCount('items')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $upcomingBookings = Booking::query()
+            ->whereDate('booking_date', '>=', now()->toDateString())
+            ->with(['customer', 'orders' => fn ($q) => $q->latest()->limit(1)])
+            ->orderBy('booking_date')
+            ->orderBy('time_slot')
+            ->take(5)
+            ->get();
+
+        return view('admin.dashboard', [
+            'pendingCount' => $pendingCount,
+            'paidCount' => $paidCount,
+            'processingCount' => $processingCount,
+            'readyCount' => $readyCount,
+            'activeServices' => $activeServices,
+            'recentOrders' => $recentOrders,
+            'upcomingBookings' => $upcomingBookings,
+        ]);
     }
 }

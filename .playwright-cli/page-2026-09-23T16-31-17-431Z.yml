@@ -1,0 +1,31 @@
+- generic [ref=e3]:
+  - link "Fotocopy Adhijaya Fotokopi & percetakan" [ref=e4] [cursor=pointer]:
+    - /url: http://localhost:8000
+    - generic [ref=e10]:
+      - generic [ref=e11]: Fotocopy Adhijaya
+      - generic [ref=e12]: Fotokopi & percetakan
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - paragraph [ref=e15]: Akun
+      - heading "Masuk" [level=1] [ref=e16]
+      - paragraph [ref=e17]: Gunakan akun Anda untuk melanjutkan.
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]: Email
+        - textbox "Email" [ref=e21]
+      - generic [ref=e22]:
+        - generic [ref=e23]: Kata sandi
+        - textbox "Kata sandi" [ref=e24]
+      - generic [ref=e26]:
+        - checkbox "Ingat saya" [ref=e27]
+        - generic [ref=e28]: Ingat saya
+      - generic [ref=e29]:
+        - link "Lupa kata sandi?" [ref=e30] [cursor=pointer]:
+          - /url: http://localhost:8000/forgot-password
+        - button "Masuk" [ref=e31]
+    - paragraph [ref=e32]:
+      - text: Belum punya akun?
+      - link "Daftar" [ref=e33] [cursor=pointer]:
+        - /url: http://localhost:8000/register
+  - link "Kembali ke beranda" [ref=e34] [cursor=pointer]:
+    - /url: http://localhost:8000

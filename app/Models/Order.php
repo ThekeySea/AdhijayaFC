@@ -65,6 +65,12 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /** @return HasMany<OrderFile, $this> */
+    public function files(): HasMany
+    {
+        return $this->hasMany(OrderFile::class);
+    }
+
     public function hasDownPayment(): bool
     {
         return (float) $this->remaining_amount > 0;

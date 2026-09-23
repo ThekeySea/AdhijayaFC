@@ -5,7 +5,7 @@
         </h2>
 
         <p class="mt-1 text-sm text-muted">
-            Perbarui nama dan email akun Anda.
+            Perbarui nama, email, dan nomor WhatsApp akun Anda.
         </p>
     </header>
 
@@ -45,6 +45,13 @@
                     @endif
                 </div>
             @endif
+        </div>
+
+        <div>
+            <x-input-label for="phone" value="Nomor WhatsApp (opsional)" />
+            <x-text-input id="phone" name="phone" type="text" class="mt-1 block w-full" :value="old('phone', $user->phone)" placeholder="628xxxxxxxxxx" autocomplete="tel" />
+            <p class="mt-1 text-xs text-muted">Format internasional tanpa +. Contoh: 6281234567890</p>
+            <x-input-error class="mt-2" :messages="$errors->get('phone')" />
         </div>
 
         <div class="flex items-center gap-4">

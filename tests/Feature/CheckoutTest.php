@@ -23,6 +23,15 @@ class CheckoutTest extends TestCase
         ]);
     }
 
+    private function checkoutPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'phone' => '6281234567890',
+            'pickup_date' => now()->addDay()->toDateString(),
+            'time_slot' => '10.00-11.00',
+        ], $overrides);
+    }
+
     public function test_guest_is_redirected_to_login_from_checkout(): void
     {
         $this->get('/checkout')->assertRedirect('/login');
@@ -53,6 +62,29 @@ class CheckoutTest extends TestCase
         $response->assertSee('A4, 2 sisi');
         $response->assertSee('Buat pesanan');
         $response->assertSee('Rp 1.500');
+        $response->assertSee('Nomor WhatsApp');
+    }
+
+    public function test_checkout_requires_phone_and_saves_it(): void
+    {
+        $user = User::factory()->create(['phone' => null]);
+        $service = Service::factory()->create(['price' => 500]);
+
+        $this->actingAs($user);
+        $this->addServiceToCart($service, 1);
+
+        $this->post('/checkout', [
+            'pickup_date' => now()->addDay()->toDateString(),
+            'time_slot' => '10.00-11.00',
+        ])->assertSessionHasErrors('phone');
+
+        $this->post('/checkout', [
+            'phone' => '628111111111',
+            'pickup_date' => now()->addDay()->toDateString(),
+            'time_slot' => '10.00-11.00',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('628111111111', $user->fresh()->phone);
     }
 
     public function test_checkout_creates_order_with_price_snapshots(): void
@@ -66,11 +98,9 @@ class CheckoutTest extends TestCase
         $this->actingAs($user);
         $this->addServiceToCart($service, 4, 'A3');
 
-        $response = $this->post('/checkout', [
-            'pickup_date' => now()->addDay()->toDateString(),
-            'time_slot' => '10.00-11.00',
+        $response = $this->post('/checkout', $this->checkoutPayload([
             'customer_note' => 'Tolong cepat',
-        ]);
+        ]));
 
         $order = Order::sole();
 
@@ -103,10 +133,9 @@ class CheckoutTest extends TestCase
         $this->actingAs($user);
         $this->addServiceToCart($service, 2);
 
-        $this->post('/checkout', [
-            'pickup_date' => now()->addDay()->toDateString(),
+        $this->post('/checkout', $this->checkoutPayload([
             'time_slot' => '09.00-10.00',
-        ])->assertRedirect();
+        ]))->assertRedirect();
 
         $this->get('/keranjang')->assertSee('Keranjang masih kosong');
     }
@@ -119,10 +148,10 @@ class CheckoutTest extends TestCase
         $this->actingAs($user);
         $this->addServiceToCart($service, 1);
 
-        $this->post('/checkout', [
+        $this->post('/checkout', $this->checkoutPayload([
             'pickup_date' => now()->subDay()->toDateString(),
             'time_slot' => 'bukan-slot',
-        ])->assertSessionHasErrors(['pickup_date', 'time_slot']);
+        ]))->assertSessionHasErrors(['pickup_date', 'time_slot']);
 
         $this->assertSame(0, Order::count());
     }
@@ -137,10 +166,9 @@ class CheckoutTest extends TestCase
 
         $service->update(['price' => 2500]);
 
-        $this->post('/checkout', [
-            'pickup_date' => now()->addDay()->toDateString(),
+        $this->post('/checkout', $this->checkoutPayload([
             'time_slot' => '11.00-12.00',
-        ])->assertRedirect();
+        ]))->assertRedirect();
 
         $order = Order::sole();
         $this->assertSame(5000.0, (float) $order->subtotal);
@@ -155,10 +183,9 @@ class CheckoutTest extends TestCase
         $this->actingAs($user);
         $this->addServiceToCart($service, 1);
 
-        $this->post('/checkout', [
-            'pickup_date' => now()->addDay()->toDateString(),
+        $this->post('/checkout', $this->checkoutPayload([
             'time_slot' => '13.00-14.00',
-        ]);
+        ]));
 
         $service->update(['price' => 9000, 'name' => 'Jilid Premium']);
 
@@ -178,10 +205,9 @@ class CheckoutTest extends TestCase
         $this->addServiceToCart($service, 1);
 
         $this->get('/checkout')->assertForbidden();
-        $this->post('/checkout', [
-            'pickup_date' => now()->addDay()->toDateString(),
+        $this->post('/checkout', $this->checkoutPayload([
             'time_slot' => '09.00-10.00',
-        ])->assertForbidden();
+        ]))->assertForbidden();
     }
 
     public function test_checkout_with_inactive_service_in_cart_redirects(): void
@@ -194,10 +220,9 @@ class CheckoutTest extends TestCase
 
         $service->update(['is_active' => false]);
 
-        $this->post('/checkout', [
-            'pickup_date' => now()->addDay()->toDateString(),
+        $this->post('/checkout', $this->checkoutPayload([
             'time_slot' => '09.00-10.00',
-        ])->assertRedirect('/keranjang');
+        ]))->assertRedirect('/keranjang');
 
         $this->assertSame(0, Order::count());
     }
@@ -210,10 +235,9 @@ class CheckoutTest extends TestCase
         $this->actingAs($user);
         $this->addServiceToCart($service, 1);
 
-        $this->post('/checkout', [
-            'pickup_date' => now()->addDay()->toDateString(),
+        $this->post('/checkout', $this->checkoutPayload([
             'time_slot' => '14.00-15.00',
-        ]);
+        ]));
 
         $order = Order::sole();
 

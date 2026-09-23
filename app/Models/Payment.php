@@ -18,7 +18,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'fraud_status',
     'payment_type',
     'paid_at',
+    'expires_at',
     'raw_notification',
+    'charge_response',
 ])]
 class Payment extends Model
 {
@@ -32,7 +34,9 @@ class Payment extends Model
         return [
             'gross_amount' => 'decimal:2',
             'paid_at' => 'datetime',
+            'expires_at' => 'datetime',
             'raw_notification' => 'array',
+            'charge_response' => 'array',
         ];
     }
 

@@ -5,17 +5,25 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\Payment;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class MidtransService
 {
     /**
-     * Metode pembayaran yang diizinkan: QRIS dan transfer bank saja.
+     * Metode pembayaran yang didukung overlay custom.
      *
      * @var list<string>
      */
-    public const ENABLED_PAYMENTS = ['bank_transfer', 'qris'];
+    public const SUPPORTED_METHODS = ['qris', 'bank_transfer'];
+
+    /**
+     * Bank VA yang ditawarkan (hanya untuk transfer bank).
+     *
+     * @var list<string>
+     */
+    public const SUPPORTED_BANKS = ['bca', 'bni', 'bri', 'mandiri'];
 
     public function amountDueFor(float $total): float
     {
@@ -36,23 +44,61 @@ class MidtransService
     }
 
     /**
-     * Buat atau perbarui transaksi Snap untuk order yang belum dibayar.
-     * Mengembalikan snap token.
+     * Charge Midtrans Core API v2 (QRIS / bank transfer) untuk order belum dibayar.
+     *
+     * @param  string  $method  qris|bank_transfer
+     * @param  string  $bank  hanya untuk bank_transfer (bca|bni|bri|mandiri)
+     * @return array{
+     *     method: string,
+     *     bank: ?string,
+     *     amount_due: int,
+     *     order_number: string,
+     *     qr_string: ?string,
+     *     qr_code: ?string,
+     *     va_number: ?string,
+     *     expires_at: ?string,
+     *     payment_status: string
+     * }
      *
      * @throws ConnectionException
+     * @throws RuntimeException
      */
-    public function createSnapToken(Order $order): string
+    public function createCharge(Order $order, string $method = 'qris', string $bank = 'bca'): array
     {
+        if (! in_array($method, self::SUPPORTED_METHODS, true)) {
+            throw new RuntimeException('Metode pembayaran tidak didukung.');
+        }
+
+        if ($method === 'bank_transfer' && ! in_array($bank, self::SUPPORTED_BANKS, true)) {
+            throw new RuntimeException('Bank tidak didukung.');
+        }
+
         if ($order->payment_status->value === 'PAID') {
             throw new RuntimeException('Pesanan sudah dibayar.');
         }
 
+        $pending = Payment::query()
+            ->where('order_id', $order->id)
+            ->where('transaction_status', 'pending')
+            ->latest()
+            ->first();
+
+        if ($pending !== null && is_array($pending->charge_response) && $pending->charge_response !== []) {
+            $storedMethod = (string) ($pending->charge_response['method'] ?? '');
+            $storedBank = (string) ($pending->charge_response['bank'] ?? '');
+            $notExpired = $pending->expires_at === null || $pending->expires_at->isFuture();
+
+            if ($notExpired && $storedMethod === $method && ($method !== 'bank_transfer' || $storedBank === $bank)) {
+                return $this->chargePayload($order, $pending->charge_response);
+            }
+        }
+
         $payload = [
+            'payment_type' => $method === 'qris' ? 'qris' : 'bank_transfer',
             'transaction_details' => [
                 'order_id' => $order->order_number,
                 'gross_amount' => (int) $order->amount_due,
             ],
-            'enabled_payments' => self::ENABLED_PAYMENTS,
             'customer_details' => [
                 'first_name' => $order->customer?->name ?? 'Pelanggan',
                 'email' => $order->customer?->email,
@@ -63,44 +109,117 @@ class MidtransService
                 'quantity' => $item->quantity,
                 'name' => mb_substr($item->service_name_snapshot, 0, 50),
             ])->values()->all(),
-            'expiry' => [
-                'unit' => 'hours',
-                'duration' => 24,
-            ],
         ];
+
+        if ($method === 'bank_transfer') {
+            $payload['bank_transfer'] = ['bank' => $bank];
+        }
 
         $response = Http::withBasicAuth((string) config('midtrans.server_key'), '')
             ->acceptJson()
-            ->post(config('midtrans.api_url').'/snap/v1/transactions', $payload);
+            ->asJson()
+            ->post(config('midtrans.api_url').'/v2/charge', $payload);
 
         if ($response->failed()) {
-            throw new RuntimeException('Gagal membuat transaksi pembayaran. Coba lagi nanti.');
+            $message = $response->json('error_messages.0')
+                ?? $response->json('validation_messages.0')
+                ?? $response->json('status_message')
+                ?? 'Gagal membuat pembayaran (HTTP '.$response->status().'). Coba lagi nanti.';
+
+            throw new RuntimeException((string) $message);
         }
 
-        $token = (string) $response->json('token');
+        $charge = $response->json();
+        if (! is_array($charge)) {
+            throw new RuntimeException('Respons pembayaran tidak valid dari Midtrans.');
+        }
+        $vaNumber = null;
 
-        if ($token === '') {
-            throw new RuntimeException('Token pembayaran tidak diterima.');
+        if (isset($charge['va_numbers'][0]['va_number'])) {
+            $vaNumber = (string) $charge['va_numbers'][0]['va_number'];
+        } elseif (isset($charge['bill_key'])) {
+            $vaNumber = (string) $charge['bill_key'];
         }
 
-        $payment = Payment::query()
-            ->where('order_id', $order->id)
-            ->where('transaction_status', 'pending')
-            ->latest()
-            ->first();
+        $expiresAt = null;
+        $expiryRaw = $charge['expiry_time'] ?? $charge['expires_time'] ?? null;
 
-        if ($payment === null) {
-            $payment = new Payment(['order_id' => $order->id]);
+        if (is_string($expiryRaw) && $expiryRaw !== '') {
+            try {
+                $expiresAt = Carbon::parse($expiryRaw);
+            } catch (\Throwable) {
+                $expiresAt = now()->addDay();
+            }
+        } else {
+            $expiresAt = now()->addDay();
         }
 
+        $stored = array_merge(is_array($charge) ? $charge : [], [
+            'method' => $method,
+            'bank' => $method === 'bank_transfer' ? $bank : null,
+            'qr_string' => $charge['qr_string'] ?? $charge['canonical_qr_string'] ?? null,
+            'qr_code' => $charge['qr_code'] ?? null,
+            'va_number' => $vaNumber,
+        ]);
+
+        $payment = $pending ?? new Payment(['order_id' => $order->id]);
         $payment->fill([
             'provider' => 'midtrans',
-            'snap_token' => $token,
+            'snap_token' => $charge['transaction_id'] ?? $charge['order_id'] ?? $payment->snap_token,
             'gross_amount' => $order->amount_due,
             'transaction_status' => 'pending',
+            'payment_type' => $method === 'qris' ? 'qris' : 'bank_transfer',
+            'charge_response' => $stored,
+            'expires_at' => $expiresAt,
         ])->save();
 
-        return $token;
+        return $this->chargePayload($order, $stored + [
+            'expires_at' => $expiresAt->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $charge
+     * @return array{
+     *     method: string,
+     *     bank: ?string,
+     *     amount_due: int,
+     *     order_number: string,
+     *     qr_string: ?string,
+     *     qr_code: ?string,
+     *     va_number: ?string,
+     *     expires_at: ?string,
+     *     payment_status: string
+     * }
+     */
+    private function chargePayload(Order $order, array $charge): array
+    {
+        $method = (string) ($charge['method'] ?? 'qris');
+        $expiresAt = $charge['expires_at'] ?? null;
+
+        if (is_string($expiresAt) && $expiresAt !== '') {
+            try {
+                $expiresAt = Carbon::parse($expiresAt)->toIso8601String();
+            } catch (\Throwable) {
+                $expiresAt = null;
+            }
+        } elseif ($expiresAt instanceof \DateTimeInterface) {
+            $expiresAt = $expiresAt->format(DATE_ATOM);
+        } else {
+            $expiresAt = null;
+        }
+
+        return [
+            'method' => $method,
+            'bank' => isset($charge['bank']) && $charge['bank'] !== null ? (string) $charge['bank'] : null,
+            'amount_due' => (int) $order->amount_due,
+            'order_number' => $order->order_number,
+            'qr_string' => isset($charge['qr_string']) ? (string) $charge['qr_string'] : null,
+            'qr_code' => isset($charge['qr_code']) ? (string) $charge['qr_code'] : null,
+            'va_number' => isset($charge['va_number']) && $charge['va_number'] !== null ? (string) $charge['va_number'] : null,
+            'expires_at' => $expiresAt,
+            'payment_status' => $order->payment_status->value,
+        ];
     }
 
     public function isValidSignature(array $notification): bool

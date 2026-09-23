@@ -10,8 +10,8 @@
 <?php $component->withAttributes([]); ?>
     <section class="relative overflow-hidden border-b border-border bg-surface">
         <div class="pointer-events-none absolute inset-0 paper-grid opacity-50" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-primary-soft" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-primary/10" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-primary-soft sm:h-72 sm:w-72" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-primary/10 sm:h-56 sm:w-56" aria-hidden="true"></div>
 
         <div class="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
             <div class="inline-flex items-center gap-2 rounded-lg border border-primary-line bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary">
@@ -22,7 +22,7 @@
             <h1 class="mt-5 max-w-2xl text-balance text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-5xl">
                 Pesan layanan fotokopi tanpa chat berulang
             </h1>
-            <p class="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
+            <p class="mt-5 max-w-xl text-base leading-relaxed text-slate-700 sm:text-lg">
                 Pilih layanan, isi detail pekerjaan, unggah file, lalu checkout. Status pesanan bisa dipantau langsung dari akun Anda.
             </p>
 
@@ -30,9 +30,15 @@
                 <a href="<?php echo e(route('services.index')); ?>" class="inline-flex min-h-12 items-center rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark">
                     Lihat layanan
                 </a>
-                <a href="<?php echo e(route('register')); ?>" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-6 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                    Buat akun
-                </a>
+                <?php if(auth()->guard()->check()): ?>
+                    <a href="<?php echo e(route('services.index', ['category' => 'digital-print'])); ?>" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-6 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
+                        Mulai cetak
+                    </a>
+                <?php else: ?>
+                    <a href="<?php echo e(route('register')); ?>" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-6 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
+                        Buat akun
+                    </a>
+                <?php endif; ?>
             </div>
 
             <dl class="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
@@ -57,12 +63,23 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wider text-primary">Katalog</p>
                 <h2 class="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Layanan</h2>
-                <p class="mt-2 max-w-xl text-sm text-muted">Harga di bawah ini adalah harga contoh dan dapat diubah oleh admin.</p>
+                <p class="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-700 sm:text-base">Harga di bawah ini adalah harga contoh dan dapat diubah oleh admin.</p>
             </div>
             <a href="<?php echo e(route('services.index')); ?>" class="text-sm font-semibold text-primary transition hover:text-primary-dark hover:underline">
                 Lihat semua layanan →
             </a>
         </div>
+
+        <?php if($categories->isNotEmpty()): ?>
+            <div class="mt-6 flex flex-wrap gap-2">
+                <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <a href="<?php echo e(route('services.index', ['category' => $category->slug])); ?>" class="inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-3.5 text-[15px] font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
+                        <?php echo e($category->name); ?>
+
+                    </a>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </div>
+        <?php endif; ?>
 
         <?php if($services->isEmpty()): ?>
             <div class="mt-8 rounded-2xl border border-dashed border-border bg-surface p-10 text-center">
@@ -75,7 +92,7 @@
                     <a href="<?php echo e(route('services.show', $service)); ?>" class="group flex flex-col rounded-2xl border border-border bg-surface p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
                         <div class="flex items-start justify-between gap-3">
                             <span class="inline-flex rounded-lg bg-background px-2.5 py-1 text-xs font-medium text-muted transition group-hover:bg-primary-soft group-hover:text-primary">
-                                <?php echo e($service->category ?? 'Layanan'); ?>
+                                <?php echo e($service->badgeLabel()); ?>
 
                             </span>
                             <span class="text-[11px] font-semibold uppercase tracking-wide text-primary">Harga contoh</span>
@@ -84,7 +101,7 @@
                             <?php echo e($service->name); ?>
 
                         </h3>
-                        <p class="mt-2 line-clamp-2 flex-1 text-sm leading-relaxed text-muted"><?php echo e($service->description); ?></p>
+                        <p class="mt-2 line-clamp-2 flex-1 text-[15px] leading-relaxed text-slate-700"><?php echo e($service->description); ?></p>
                         <div class="mt-5 flex items-center justify-between border-t border-border pt-4">
                             <span class="text-sm font-bold tabular-nums text-foreground"><?php echo e($service->formattedPrice()); ?><span class="font-medium text-muted">/<?php echo e($service->unit); ?></span></span>
                             <span class="text-sm font-semibold text-primary">Lihat detail</span>
@@ -95,6 +112,66 @@
         <?php endif; ?>
     </section>
 
+    <?php if($digitalPrintServices->isNotEmpty()): ?>
+        <section id="digital-print" class="border-t border-border bg-background">
+            <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-primary">Digital print</p>
+                        <h2 class="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Print A0–A5 & scan copy</h2>
+                        <p class="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-700 sm:text-base">Print ukuran besar hingga A5 dan scan copy untuk kebutuhan kantor, sekolah, dan acara.</p>
+                    </div>
+                    <a href="<?php echo e(route('services.index', ['category' => 'digital-print'])); ?>" class="text-sm font-semibold text-primary transition hover:text-primary-dark hover:underline">
+                        Semua digital print →
+                    </a>
+                </div>
+                <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <?php $__currentLoopData = $digitalPrintServices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $service): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <a href="<?php echo e(route('services.show', $service)); ?>" class="group flex flex-col rounded-2xl border border-border bg-surface p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
+                            <span class="inline-flex w-fit rounded-lg bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary"><?php echo e($service->badgeLabel()); ?></span>
+                            <h3 class="mt-4 text-base font-semibold text-foreground transition group-hover:text-primary"><?php echo e($service->name); ?></h3>
+                            <p class="mt-2 line-clamp-2 flex-1 text-[15px] leading-relaxed text-slate-700"><?php echo e($service->description); ?></p>
+                            <div class="mt-5 flex items-center justify-between border-t border-border pt-4">
+                                <span class="text-sm font-bold tabular-nums text-foreground"><?php echo e($service->formattedPrice()); ?><span class="font-medium text-muted">/<?php echo e($service->unit); ?></span></span>
+                                <span class="text-sm font-semibold text-primary">Lihat detail</span>
+                            </div>
+                        </a>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if($atkServices->isNotEmpty()): ?>
+        <section id="atk" class="border-t border-border bg-surface">
+            <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-primary">Alat tulis</p>
+                        <h2 class="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Pesan ATK</h2>
+                        <p class="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-700 sm:text-base">Pulpen, buku, map, dan kebutuhan tulis lainnya — bisa sekalian dengan pesanan print.</p>
+                    </div>
+                    <a href="<?php echo e(route('services.index', ['type' => 'jual'])); ?>" class="text-sm font-semibold text-primary transition hover:text-primary-dark hover:underline">
+                        Semua ATK →
+                    </a>
+                </div>
+                <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <?php $__currentLoopData = $atkServices; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $service): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <a href="<?php echo e(route('services.show', $service)); ?>" class="group flex flex-col rounded-2xl border border-border bg-background p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
+                            <span class="inline-flex w-fit rounded-lg bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">ATK</span>
+                            <h3 class="mt-4 text-base font-semibold text-foreground transition group-hover:text-primary"><?php echo e($service->name); ?></h3>
+                            <p class="mt-2 line-clamp-2 flex-1 text-[15px] leading-relaxed text-slate-700"><?php echo e($service->description); ?></p>
+                            <div class="mt-5 flex items-center justify-between border-t border-border pt-4">
+                                <span class="text-sm font-bold tabular-nums text-foreground"><?php echo e($service->formattedPrice()); ?><span class="font-medium text-muted">/<?php echo e($service->unit); ?></span></span>
+                                <span class="text-sm font-semibold text-primary">Pesan</span>
+                            </div>
+                        </a>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
+
     <section id="kontak" class="border-t border-border bg-surface">
         <div class="mx-auto grid max-w-6xl gap-6 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:px-8">
             <div>
@@ -104,7 +181,7 @@
                     Nomor WhatsApp dan jam operasional tersedia di halaman Kontak. Admin siap membantu kebutuhan khusus.
                 </p>
                 <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="<?php echo e(route('kontak')); ?>" class="inline-flex min-h-12 items-center rounded-lg bg-primary px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark">
+                    <a href="<?php echo e(route('kontak')); ?>" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
                         Buka halaman kontak
                     </a>
                     <?php if($whatsappUrl): ?>

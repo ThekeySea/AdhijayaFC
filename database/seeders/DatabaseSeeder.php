@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Service;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -30,10 +29,8 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        if (Service::query()->doesntExist()) {
-            $this->call([
-                ServiceSeeder::class,
-            ]);
-        }
+        $this->call([
+            ServiceSeeder::class,
+        ]);
     }
 }

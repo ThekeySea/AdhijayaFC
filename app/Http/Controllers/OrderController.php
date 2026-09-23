@@ -31,7 +31,7 @@ class OrderController extends Controller
             403
         );
 
-        $order->load(['items', 'booking', 'customer']);
+        $order->load(['items', 'booking', 'customer', 'files']);
 
         return view('orders.show', [
             'order' => $order,

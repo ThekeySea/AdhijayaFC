@@ -53,4 +53,14 @@ class OrderFactory extends Factory
             'remaining_amount' => 0,
         ]);
     }
+
+    public function completed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => OrderStatus::Completed,
+            'payment_status' => PaymentStatus::Paid,
+            'amount_due' => $attributes['total'] ?? 0,
+            'remaining_amount' => 0,
+        ]);
+    }
 }

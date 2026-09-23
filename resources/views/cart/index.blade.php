@@ -38,12 +38,35 @@
                                         {{ $line['service']->name }}
                                     </a>
                                     <p class="mt-1 text-sm text-muted">
-                                        {{ \App\Support\Cart::formatAmount($line['price']) }} per {{ $line['service']->unit }}
+                                        @if ((float) ($line['option_surcharge'] ?? 0) > 0 || (float) ($line['unit_price'] ?? $line['price']) !== (float) $line['price'])
+                                            {{ \App\Support\Cart::formatAmount((float) $line['unit_price']) }} per {{ $line['service']->unit }}
+                                            <span class="text-xs">(base {{ \App\Support\Cart::formatAmount((float) $line['price']) }})</span>
+                                        @else
+                                            {{ \App\Support\Cart::formatAmount($line['price']) }} per {{ $line['service']->unit }}
+                                        @endif
                                     </p>
+                                    @if (! empty($line['options']) && $line['options']->isNotEmpty())
+                                        <ul class="mt-2 space-y-1">
+                                            @foreach ($line['options'] as $option)
+                                                <li class="rounded-lg bg-primary-soft px-3 py-1.5 text-xs font-medium text-primary">
+                                                    Opsi: {{ $option->name }} +{{ $option->formattedPrice() }}{{ $option->pricing === 'per_unit' ? '/'.$line['service']->unit : ' / pesanan' }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
                                     @if ($line['detail'] !== '')
                                         <p class="mt-2 rounded-lg bg-background px-3 py-2 text-sm text-foreground">
-                                            <span class="font-medium text-muted">Detail:</span> {{ $line['detail'] }}
+                                            <span class="font-medium text-muted">Pesan:</span> {{ $line['detail'] }}
                                         </p>
+                                    @endif
+                                    @if (! empty($line['files']) && count($line['files']) > 0)
+                                        <ul class="mt-2 space-y-1">
+                                            @foreach ($line['files'] as $file)
+                                                <li class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+                                                    File: {{ $file['name'] ?? basename($file['path'] ?? '') }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
                                     @endif
                                 </div>
                                 <p class="shrink-0 text-base font-bold tabular-nums text-foreground">
@@ -68,7 +91,7 @@
                                         >
                                     </div>
                                     <div class="flex-1 min-w-40">
-                                        <label for="detail-{{ $line['service']->id }}" class="block text-xs font-semibold uppercase tracking-wide text-muted">Detail pengerjaan</label>
+                                        <label for="detail-{{ $line['service']->id }}" class="block text-xs font-semibold uppercase tracking-wide text-muted">Pesan</label>
                                         <input
                                             id="detail-{{ $line['service']->id }}"
                                             type="text"
@@ -81,6 +104,28 @@
                                     </div>
                                     <x-secondary-button type="submit" class="mb-0.5">Simpan</x-secondary-button>
                                 </form>
+
+                                @if ($line['service']->activeOptions->isNotEmpty())
+                                    <form method="POST" action="{{ route('cart.update', $line['service']) }}" class="mt-3 w-full">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="quantity" value="{{ $line['quantity'] }}">
+                                        <input type="hidden" name="detail" value="{{ $line['detail'] }}">
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Opsi tambahan</p>
+                                        <div class="mt-2 flex flex-wrap gap-2">
+                                            @foreach ($line['service']->activeOptions as $option)
+                                                <label class="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground transition hover:border-primary/40">
+                                                    <input type="checkbox" name="options[]" value="{{ $option->id }}" class="rounded border-border text-primary focus:ring-primary"
+                                                        @checked(in_array($option->id, $line['options']->pluck('id')->all()))>
+                                                    <span>{{ $option->name }} <span class="text-xs text-muted">+{{ $option->formattedPrice() }}</span></span>
+                                                </label>
+                                            @endforeach
+                                            <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
+                                                Simpan opsi
+                                            </button>
+                                        </div>
+                                    </form>
+                                @endif
 
                                 <form method="POST" action="{{ route('cart.destroy', $line['service']) }}">
                                     @csrf

@@ -42,6 +42,28 @@ class AuthenticationTest extends TestCase
 
         $response->assertSessionHasErrors('email');
         $this->assertGuest();
+
+        $message = session('errors')->first('email');
+        $this->assertIsString($message);
+        $this->assertStringContainsString('Email atau kata sandi salah', $message);
+        $this->assertStringNotContainsString('auth.failed', $message);
+    }
+
+    public function test_login_shows_clear_error_banner_on_failure(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->followingRedirects()
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('Masuk gagal', false);
+        $response->assertSee('Email atau kata sandi salah', false);
+        $this->assertGuest();
     }
 
     public function test_admin_authenticates_to_admin_dashboard(): void

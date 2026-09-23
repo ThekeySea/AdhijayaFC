@@ -16,7 +16,7 @@
         <form method="POST" action="{{ route('admin.services.update', $service) }}">
             @csrf
             @method('PUT')
-            @include('admin.services.form', ['service' => $service])
+            @include('admin.services.form', ['service' => $service, 'categories' => $categories, 'tiers' => $tiers])
 
             <div class="mt-6 flex flex-wrap gap-3">
                 <x-primary-button>Simpan perubahan</x-primary-button>

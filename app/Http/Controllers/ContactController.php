@@ -3,16 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Lib\WhatsApp;
+use App\Models\BusinessSetting;
 use Illuminate\View\View;
 
 class ContactController extends Controller
 {
     public function index(): View
     {
+        $settings = BusinessSetting::current();
+
         return view('kontak', [
-            'whatsappUrl' => WhatsApp::isConfigured()
-                ? WhatsApp::url('Halo Admin Fotocopy Adhijaya, saya ingin menanyakan layanan.')
-                : null,
+            'settings' => $settings,
+            'whatsappUrl' => WhatsApp::buildWhatsAppUrl(
+                $settings->whatsapp_number ?? WhatsApp::number(),
+                'Halo Admin Fotocopy Adhijaya, saya ingin menanyakan layanan.'
+            ),
         ]);
     }
 }

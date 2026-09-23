@@ -50,8 +50,14 @@
                         <?php $__currentLoopData = $services; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $service): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <tr class="transition hover:bg-background/60">
                                 <td class="px-4 py-3 font-medium text-foreground"><?php echo e($service->name); ?></td>
-                                <td class="px-4 py-3 text-muted"><?php echo e($service->category ?? '—'); ?></td>
-                                <td class="px-4 py-3 font-medium tabular-nums text-foreground"><?php echo e($service->formattedPrice()); ?>/<?php echo e($service->unit); ?></td>
+                                <td class="px-4 py-3 text-muted"><?php echo e($service->badgeLabel()); ?></td>
+                                <td class="px-4 py-3 font-medium tabular-nums text-foreground">
+                                    <?php echo e($service->formattedPrice()); ?>/<?php echo e($service->unit); ?>
+
+                                    <?php if($service->priceTiers->isNotEmpty()): ?>
+                                        <span class="mt-0.5 block text-[11px] font-medium text-muted"><?php echo e($service->priceTiers->count()); ?> tier harga</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex rounded-lg px-2 py-1 text-xs font-semibold <?php echo e($service->is_active ? 'bg-primary-soft text-primary' : 'bg-background text-muted'); ?>">
                                         <?php echo e($service->is_active ? 'Aktif' : 'Nonaktif'); ?>
@@ -60,12 +66,12 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex flex-wrap justify-end gap-2">
-                                        <a href="<?php echo e(route('admin.services.edit', $service)); ?>" class="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
+                                        <a href="<?php echo e(route('admin.services.edit', $service)); ?>" class="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
                                             Ubah
                                         </a>
                                         <form method="POST" action="<?php echo e(route('admin.services.toggle', $service)); ?>">
                                             <?php echo csrf_field(); ?>
-                                            <button type="submit" class="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground transition hover:bg-background">
+                                            <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground transition hover:bg-background">
                                                 <?php echo e($service->is_active ? 'Nonaktifkan' : 'Aktifkan'); ?>
 
                                             </button>
@@ -73,7 +79,7 @@
                                         <form method="POST" action="<?php echo e(route('admin.services.destroy', $service)); ?>" onsubmit="return confirm('Hapus layanan ini?')">
                                             <?php echo csrf_field(); ?>
                                             <?php echo method_field('DELETE'); ?>
-                                            <button type="submit" class="inline-flex min-h-9 items-center rounded-lg border border-red-200 px-3 text-xs font-medium text-red-600 transition hover:bg-red-50">
+                                            <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-red-200 px-3 text-xs font-medium text-red-600 transition hover:bg-red-50">
                                                 Hapus
                                             </button>
                                         </form>
@@ -91,7 +97,14 @@
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <p class="font-medium text-foreground"><?php echo e($service->name); ?></p>
-                                <p class="mt-1 text-sm font-medium tabular-nums text-muted"><?php echo e($service->formattedPrice()); ?>/<?php echo e($service->unit); ?></p>
+                                <p class="mt-1 text-xs font-semibold uppercase tracking-wide text-muted"><?php echo e($service->badgeLabel()); ?></p>
+                                <p class="mt-1 text-sm font-medium tabular-nums text-muted">
+                                    <?php echo e($service->formattedPrice()); ?>/<?php echo e($service->unit); ?>
+
+                                    <?php if($service->priceTiers->isNotEmpty()): ?>
+                                        · <?php echo e($service->priceTiers->count()); ?> tier
+                                    <?php endif; ?>
+                                </p>
                                 <span class="mt-2 inline-flex rounded-lg px-2 py-1 text-xs font-semibold <?php echo e($service->is_active ? 'bg-primary-soft text-primary' : 'bg-background text-muted'); ?>">
                                     <?php echo e($service->is_active ? 'Aktif' : 'Nonaktif'); ?>
 
@@ -99,12 +112,12 @@
                             </div>
                         </div>
                         <div class="mt-3 flex flex-wrap gap-2">
-                            <a href="<?php echo e(route('admin.services.edit', $service)); ?>" class="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground">
+                            <a href="<?php echo e(route('admin.services.edit', $service)); ?>" class="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground">
                                 Ubah
                             </a>
                             <form method="POST" action="<?php echo e(route('admin.services.toggle', $service)); ?>">
                                 <?php echo csrf_field(); ?>
-                                <button type="submit" class="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground">
+                                <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-border px-3 text-xs font-medium text-foreground">
                                     <?php echo e($service->is_active ? 'Nonaktifkan' : 'Aktifkan'); ?>
 
                                 </button>
@@ -112,7 +125,7 @@
                             <form method="POST" action="<?php echo e(route('admin.services.destroy', $service)); ?>" onsubmit="return confirm('Hapus layanan ini?')">
                                 <?php echo csrf_field(); ?>
                                 <?php echo method_field('DELETE'); ?>
-                                <button type="submit" class="inline-flex min-h-9 items-center rounded-lg border border-red-200 px-3 text-xs font-medium text-red-600">
+                                <button type="submit" class="inline-flex min-h-11 items-center rounded-lg border border-red-200 px-3 text-xs font-medium text-red-600">
                                     Hapus
                                 </button>
                             </form>

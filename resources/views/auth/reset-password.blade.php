@@ -5,6 +5,17 @@
         <p class="mt-2 text-sm text-muted">Masukkan kata sandi baru untuk akun Anda.</p>
     </div>
 
+    @if ($errors->any())
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            <p class="font-semibold">Gagal mengatur ulang kata sandi</p>
+            <ul class="mt-1 list-inside list-disc space-y-0.5">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('password.store') }}">
         @csrf
 

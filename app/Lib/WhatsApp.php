@@ -16,14 +16,23 @@ class WhatsApp
         return self::number() !== null;
     }
 
-    public static function url(string $message): ?string
+    /**
+     * Bangun URL wa.me. Nomor hanya digits; pesan selalu urlencoded.
+     * Nomor toko wajib lewat number() (env). Nomor pelanggan boleh dari database.
+     */
+    public static function buildWhatsAppUrl(?string $phone, string $message): ?string
     {
-        $number = self::number();
+        $digits = preg_replace('/\D+/', '', (string) $phone);
 
-        if ($number === null) {
+        if ($digits === null || $digits === '') {
             return null;
         }
 
-        return 'https://wa.me/'.$number.'?text='.urlencode($message);
+        return 'https://wa.me/'.$digits.'?text='.urlencode($message);
+    }
+
+    public static function url(string $message): ?string
+    {
+        return self::buildWhatsAppUrl(self::number(), $message);
     }
 }

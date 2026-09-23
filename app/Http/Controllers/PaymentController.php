@@ -19,7 +19,7 @@ class PaymentController extends Controller
     ) {}
 
     /**
-     * Buat Snap token untuk order (hanya milik customer, belum dibayar).
+     * Charge Midtrans Core API (QRIS / VA) untuk overlay pembayaran custom.
      */
     public function create(Request $request, Order $order): JsonResponse
     {
@@ -38,18 +38,88 @@ class PaymentController extends Controller
             ], 422);
         }
 
+        $validated = $request->validate([
+            'method' => ['nullable', 'string', 'in:qris,bank_transfer'],
+            'bank' => ['nullable', 'string', 'in:bca,bni,bri,mandiri'],
+        ]);
+
+        $method = (string) ($validated['method'] ?? 'qris');
+        $bank = (string) ($validated['bank'] ?? 'bca');
+
         try {
-            $token = $this->midtrans->createSnapToken($order);
+            $charge = $this->midtrans->createCharge($order, $method, $bank);
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => $e->getMessage(),
             ], 502);
         }
 
+        return response()->json($charge);
+    }
+
+    /**
+     * Poll status pembayaran (dipakai overlay custom).
+     */
+    public function status(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->customer_id === $request->user()->id, 403);
+        abort_if($request->user()->isAdmin(), 403);
+
         return response()->json([
-            'snap_token' => $token,
-            'client_key' => config('midtrans.client_key'),
-            'amount_due' => (float) $order->amount_due,
+            'payment_status' => $order->payment_status->value,
+            'order_status' => $order->status->value,
+            'is_paid' => $order->payment_status === PaymentStatus::Paid,
+        ]);
+    }
+
+    /**
+     * Lewati pembayaran (tutup overlay ✕/Tutup) — pesanan dianggap selesai dibayar.
+     */
+    public function skip(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->customer_id === $request->user()->id, 403);
+        abort_if($request->user()->isAdmin(), 403);
+
+        if ($order->payment_status === PaymentStatus::Paid) {
+            return response()->json([
+                'message' => 'Pesanan sudah dibayar.',
+                'is_paid' => true,
+            ]);
+        }
+
+        if ($order->status === OrderStatus::Cancelled) {
+            return response()->json([
+                'message' => 'Pesanan sudah dibatalkan.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($order) {
+            $payment = Payment::query()
+                ->where('order_id', $order->id)
+                ->latest()
+                ->first() ?? new Payment(['order_id' => $order->id]);
+
+            if (! $payment->isPaid()) {
+                $payment->fill([
+                    'provider' => 'manual',
+                    'payment_type' => 'skipped',
+                    'transaction_status' => 'settlement',
+                    'gross_amount' => $order->amount_due,
+                    'paid_at' => now(),
+                ])->save();
+            }
+
+            $order->update([
+                'payment_status' => PaymentStatus::Paid,
+                'status' => in_array($order->status, [OrderStatus::PendingPayment, OrderStatus::PaymentFailed], true)
+                    ? OrderStatus::Paid
+                    : $order->status,
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Pembayaran dilewati. Pesanan dianggap selesai.',
+            'is_paid' => true,
         ]);
     }
 

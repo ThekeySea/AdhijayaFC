@@ -68,6 +68,7 @@ class PaymentTest extends TestCase
         $this->post('/keranjang', ['service_id' => $service->id, 'quantity' => 1]);
 
         $this->post('/checkout', [
+            'phone' => '6281234567890',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '09.00-10.00',
         ])->assertRedirect();
@@ -89,6 +90,7 @@ class PaymentTest extends TestCase
         $this->post('/keranjang', ['service_id' => $service->id, 'quantity' => 2]);
 
         $this->post('/checkout', [
+            'phone' => '6281234567890',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '09.00-10.00',
         ])->assertRedirect();
@@ -116,12 +118,14 @@ class PaymentTest extends TestCase
             ->assertSee('Sisa Rp 100.000');
     }
 
-    public function test_customer_can_request_snap_token(): void
+    public function test_customer_can_create_custom_charge_qris(): void
     {
         Http::fake([
-            'app.sandbox.midtrans.com/*' => Http::response([
-                'token' => 'snap-token-abc',
-                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/snap-token-abc',
+            'api.sandbox.midtrans.com/v2/charge' => Http::response([
+                'transaction_id' => 'mid-123',
+                'transaction_status' => 'pending',
+                'qr_string' => '000201010211',
+                'qr_code' => 'https://cdn.example/qr.png',
             ], 201),
         ]);
 
@@ -135,20 +139,36 @@ class PaymentTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->postJson('/pesanan/'.$order->id.'/pay');
+            ->postJson('/pesanan/'.$order->id.'/pay', ['method' => 'qris']);
 
-        $response->assertOk()->assertJsonPath('snap_token', 'snap-token-abc');
+        $response->assertOk()
+            ->assertJsonPath('method', 'qris')
+            ->assertJsonPath('qr_string', '000201010211')
+            ->assertJsonPath('qr_code', 'https://cdn.example/qr.png')
+            ->assertJsonPath('amount_due', 50000);
+
         $this->assertDatabaseHas('payments', [
             'order_id' => $order->id,
-            'snap_token' => 'snap-token-abc',
             'transaction_status' => 'pending',
+            'payment_type' => 'qris',
         ]);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/v2/charge')
+                && $request->data()['payment_type'] === 'qris';
+        });
     }
 
-    public function test_snap_request_only_allows_qris_and_bank_transfer(): void
+    public function test_customer_can_create_custom_charge_bank_transfer(): void
     {
         Http::fake([
-            'app.sandbox.midtrans.com/*' => Http::response(['token' => 'tok'], 201),
+            'api.sandbox.midtrans.com/v2/charge' => Http::response([
+                'transaction_id' => 'mid-va-1',
+                'transaction_status' => 'pending',
+                'va_numbers' => [
+                    ['bank' => 'bca', 'va_number' => '1234567890'],
+                ],
+            ], 201),
         ]);
 
         $user = User::factory()->create();
@@ -158,16 +178,129 @@ class PaymentTest extends TestCase
             'amount_due' => 50000,
         ]);
 
-        $this->actingAs($user)->postJson('/pesanan/'.$order->id.'/pay');
+        $response = $this->actingAs($user)
+            ->postJson('/pesanan/'.$order->id.'/pay', [
+                'method' => 'bank_transfer',
+                'bank' => 'bca',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('method', 'bank_transfer')
+            ->assertJsonPath('bank', 'bca')
+            ->assertJsonPath('va_number', '1234567890');
 
         Http::assertSent(function ($request) {
             $body = $request->data();
 
-            return ($body['enabled_payments'] ?? null) === ['bank_transfer', 'qris'];
+            return $body['payment_type'] === 'bank_transfer'
+                && ($body['bank_transfer']['bank'] ?? null) === 'bca';
         });
     }
 
-    public function test_admin_cannot_request_snap_token(): void
+    public function test_payment_status_endpoint_reports_paid(): void
+    {
+        $user = User::factory()->create();
+        $order = Order::factory()->paid()->create([
+            'customer_id' => $user->id,
+            'total' => 50000,
+            'amount_due' => 50000,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson('/pesanan/'.$order->id.'/payment/status')
+            ->assertOk()
+            ->assertJsonPath('is_paid', true)
+            ->assertJsonPath('payment_status', 'PAID');
+    }
+
+    public function test_customer_can_skip_payment_and_order_is_paid(): void
+    {
+        $user = User::factory()->create();
+        $order = Order::factory()->pendingPayment()->create([
+            'customer_id' => $user->id,
+            'total' => 50000,
+            'amount_due' => 50000,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/pesanan/'.$order->id.'/payment/skip')
+            ->assertOk()
+            ->assertJsonPath('is_paid', true);
+
+        $order->refresh();
+        $this->assertSame(PaymentStatus::Paid, $order->payment_status);
+        $this->assertSame(OrderStatus::Paid, $order->status);
+
+        $payment = Payment::where('order_id', $order->id)->first();
+        $this->assertNotNull($payment);
+        $this->assertTrue($payment->isPaid());
+        $this->assertSame('skipped', $payment->payment_type);
+    }
+
+    public function test_skip_payment_is_idempotent_when_already_paid(): void
+    {
+        $user = User::factory()->create();
+        $order = Order::factory()->paid()->create([
+            'customer_id' => $user->id,
+            'total' => 50000,
+            'amount_due' => 50000,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/pesanan/'.$order->id.'/payment/skip')
+            ->assertOk()
+            ->assertJsonPath('is_paid', true);
+    }
+
+    public function test_skip_payment_rejects_other_customer(): void
+    {
+        $order = Order::factory()->pendingPayment()->create([
+            'total' => 50000,
+            'amount_due' => 50000,
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->postJson('/pesanan/'.$order->id.'/payment/skip')
+            ->assertForbidden();
+
+        $this->assertSame(PaymentStatus::Unpaid, $order->fresh()->payment_status);
+    }
+
+    public function test_rejects_unsupported_charge_method(): void
+    {
+        $user = User::factory()->create();
+        $order = Order::factory()->pendingPayment()->create([
+            'customer_id' => $user->id,
+            'total' => 50000,
+            'amount_due' => 50000,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/pesanan/'.$order->id.'/pay', ['method' => 'credit_card'])
+            ->assertUnprocessable();
+    }
+
+    public function test_order_detail_shows_custom_overlay_markup(): void
+    {
+        $user = User::factory()->create();
+        $order = Order::factory()->pendingPayment()->create([
+            'customer_id' => $user->id,
+            'total' => 50000,
+            'amount_due' => 50000,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/pesanan/'.$order->id)
+            ->assertOk()
+            ->assertSee('payment-overlay-root', false)
+            ->assertSee('paymentOverlay', false)
+            ->assertSee('z-[100]', false)
+            ->assertSee('QRIS')
+            ->assertSee('Transfer bank')
+            ->assertSee('Lewati pembayaran');
+    }
+
+    public function test_admin_cannot_request_charge(): void
     {
         $admin = User::factory()->admin()->create();
         $order = Order::factory()->pendingPayment()->create([
@@ -180,7 +313,7 @@ class PaymentTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_other_customer_cannot_request_snap_token(): void
+    public function test_other_customer_cannot_request_charge(): void
     {
         $user = User::factory()->create();
         $order = Order::factory()->pendingPayment()->create([
@@ -340,7 +473,7 @@ class PaymentTest extends TestCase
             ->assertSee('id="pay-now"', false)
             ->assertSee('Bayar sekarang')
             ->assertSee('Uang muka (DP) 50%')
-            ->assertSee('QRIS atau transfer bank');
+            ->assertSee('QRIS');
     }
 
     public function test_order_detail_hides_pay_button_when_paid(): void
@@ -356,7 +489,7 @@ class PaymentTest extends TestCase
             ->get('/pesanan/'.$order->id)
             ->assertOk()
             ->assertDontSee('id="pay-now"', false)
-            ->assertDontSee('QRIS atau transfer bank');
+            ->assertDontSee('payment-overlay-root', false);
     }
 
     public function test_csrf_is_exempt_for_notification_webhook(): void
@@ -401,6 +534,5 @@ class PaymentTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee((string) config('midtrans.server_key'), false);
-        $response->assertSee((string) config('midtrans.client_key'), false);
     }
 }

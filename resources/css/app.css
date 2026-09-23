@@ -16,13 +16,27 @@
     --color-surface: #ffffff;
     --color-background: #f8fafc;
     --color-foreground: #0f172a;
-    --color-muted: #64748b;
-    --color-border: #e2e8f0;
+    --color-muted: #475569;
+    --color-border: #d6dde6;
 }
 
 @layer base {
     html {
         scroll-behavior: smooth;
+        overflow-x: hidden;
+        overflow-x: clip;
+        -webkit-text-size-adjust: 100%;
+        max-width: 100%;
+    }
+
+    body {
+        text-rendering: optimizeLegibility;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+        overflow-x: clip;
+        max-width: 100%;
+        width: 100%;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -39,8 +53,27 @@
         }
     }
 
-    body {
-        text-rendering: optimizeLegibility;
+    img,
+    video {
+        max-width: 100%;
+        height: auto;
+    }
+
+    p,
+    li {
+        line-height: 1.65;
+        overflow-wrap: break-word;
+    }
+
+    pre,
+    code,
+    kbd {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+
+    table {
+        max-width: 100%;
     }
 
     ::selection {
@@ -64,4 +97,30 @@
 
 @utility text-balance {
     text-wrap: balance;
+}
+
+@media print {
+    .no-print,
+    aside,
+    header {
+        display: none !important;
+    }
+
+    body,
+    html {
+        background: #fff !important;
+    }
+
+    main {
+        padding: 0 !important;
+    }
+
+    .print\:block {
+        display: block !important;
+    }
+
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
 }

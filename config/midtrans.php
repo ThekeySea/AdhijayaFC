@@ -16,10 +16,12 @@ return [
     'client_key' => env('MIDTRANS_CLIENT_KEY'),
     'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
 
+    /* Core API v2 (charge QRIS / VA). */
     'api_url' => env('MIDTRANS_IS_PRODUCTION', false)
         ? 'https://api.midtrans.com'
-        : 'https://app.sandbox.midtrans.com',
+        : 'https://api.sandbox.midtrans.com',
 
+    /* Host Snap (dashboard / redirect) — beda dari Core API. */
     'snap_url' => env('MIDTRANS_IS_PRODUCTION', false)
         ? 'https://app.midtrans.com'
         : 'https://app.sandbox.midtrans.com',
@@ -29,9 +31,9 @@ return [
         : 'https://app.sandbox.midtrans.com/snap/snap.js',
 
     /*
-    | Metode pembayaran yang diizinkan: QRIS dan transfer bank (VA) saja.
+    | Metode overlay custom: QRIS dan transfer bank (VA).
     */
-    'enabled_payments' => ['bank_transfer', 'qris'],
+    'enabled_payments' => ['qris', 'bank_transfer'],
 
     /*
     | Total di atas nominal ini kena DP 50%.

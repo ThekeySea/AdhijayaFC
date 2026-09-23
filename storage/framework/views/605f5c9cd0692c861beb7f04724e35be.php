@@ -12,8 +12,8 @@
     <body class="min-h-screen bg-background text-foreground font-sans antialiased">
         <div class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
             <div class="pointer-events-none absolute inset-0 paper-grid opacity-60" aria-hidden="true"></div>
-            <div class="pointer-events-none absolute -top-20 right-0 h-56 w-56 rounded-full bg-primary-soft" aria-hidden="true"></div>
-            <div class="pointer-events-none absolute -bottom-16 left-0 h-40 w-40 rounded-full bg-primary/10" aria-hidden="true"></div>
+            <div class="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-primary-soft sm:h-56 sm:w-56" aria-hidden="true"></div>
+            <div class="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-primary/10 sm:h-40 sm:w-40" aria-hidden="true"></div>
 
             <div class="relative w-full max-w-md">
                 <a href="<?php echo e(route('home')); ?>" class="mb-6 flex items-center justify-center gap-2.5">
