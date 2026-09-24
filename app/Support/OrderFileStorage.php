@@ -160,22 +160,22 @@ class OrderFileStorage
      */
     private function blobControlHeaders(?string $mime = null): array
     {
+        $storeId = $this->normalizedStoreId();
+
         $headers = [
             'Authorization' => 'Bearer '.$this->resolveAuthToken(),
             'x-api-version' => self::BLOB_API_VERSION,
-            'access' => $this->blobAccess(),
+            'x-api-blob-request-id' => $storeId.':'.now()->getTimestamp().':'.bin2hex(random_bytes(6)),
+            'x-api-blob-request-attempt' => '0',
         ];
 
-        if ($this->isOidcAuth()) {
-            $storeId = $this->normalizedStoreId();
-
-            if ($storeId !== '') {
-                $headers['x-vercel-blob-store-id'] = $storeId;
-            }
+        if ($storeId !== '') {
+            $headers['x-vercel-blob-store-id'] = $storeId;
         }
 
         if ($mime !== null) {
             $headers['x-content-type'] = $mime;
+            $headers['x-vercel-blob-access'] = $this->blobAccess();
             $headers['Content-Type'] = $mime;
         }
 
@@ -194,18 +194,30 @@ class OrderFileStorage
 
     private function blobPut(string $pathname, string $contents, string $mime): void
     {
-        Http::withHeaders($this->blobControlHeaders($mime))
+        $response = Http::withHeaders($this->blobControlHeaders($mime))
             ->withBody($contents, $mime)
             ->put(self::BLOB_API_URL.'/?'.http_build_query(['pathname' => $pathname]))
             ->throw();
+
+        logger()->info('blob.put', [
+            'pathname' => $pathname,
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
     }
 
     private function blobGet(string $pathname): string
     {
         $url = $this->blobPublicUrl($pathname);
-        $query = ['cache' => '0'];
         $response = Http::withHeaders($this->blobObjectHeaders())
-            ->get($url.'?'.http_build_query($query));
+            ->get($url.'?'.http_build_query(['cache' => '0']));
+
+        logger()->info('blob.get', [
+            'pathname' => $pathname,
+            'url' => $url,
+            'status' => $response->status(),
+            'body_prefix' => substr($response->body(), 0, 200),
+        ]);
 
         if ($response->successful()) {
             return $response->body();
@@ -216,10 +228,26 @@ class OrderFileStorage
 
     private function blobExists(string $pathname): bool
     {
-        $response = Http::withHeaders($this->blobControlHeaders())
+        $control = Http::withHeaders($this->blobControlHeaders())
             ->get(self::BLOB_API_URL.'?'.http_build_query(['url' => $pathname]));
 
-        return $response->successful();
+        $url = $this->blobPublicUrl($pathname);
+        $head = Http::withHeaders($this->blobObjectHeaders())->head($url);
+        $get = Http::withHeaders($this->blobObjectHeaders())->get($url);
+
+        logger()->info('blob.exists', [
+            'pathname' => $pathname,
+            'control_status' => $control->status(),
+            'control_body' => substr($control->body(), 0, 300),
+            'head_status' => $head->status(),
+            'get_status' => $get->status(),
+            'url' => $url,
+            'store_id' => $this->normalizedStoreId(),
+            'uses_oidc' => $this->isOidcAuth(),
+            'token_len' => strlen($this->resolveAuthToken()),
+        ]);
+
+        return $control->successful() || $head->successful() || $get->successful();
     }
 
     private function blobDelete(string $pathname): void
