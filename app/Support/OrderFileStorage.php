@@ -131,9 +131,7 @@ class OrderFileStorage
 
     private function normalizedStoreId(): string
     {
-        $storeId = $this->blobStoreId();
-
-        return str_starts_with($storeId, 'store_') ? substr($storeId, 6) : $storeId;
+        return $this->blobStoreId();
     }
 
     private function blobPublicUrl(string $pathname): string
@@ -165,10 +163,12 @@ class OrderFileStorage
         ];
 
         if ($this->isOidcAuth()) {
-            $storeId = $this->normalizedStoreId();
+            $storeId = $this->blobStoreId();
 
             if ($storeId !== '') {
-                $headers['x-vercel-blob-store-id'] = $storeId;
+                $headers['x-vercel-blob-store-id'] = str_starts_with($storeId, 'store_')
+                    ? substr($storeId, 6)
+                    : $storeId;
             }
         }
 
@@ -199,10 +199,8 @@ class OrderFileStorage
 
     private function blobExists(string $pathname): bool
     {
-        $url = $this->blobPublicUrl($pathname);
-
         $response = Http::withHeaders($this->blobHeaders())
-            ->get(self::BLOB_API_URL, ['url' => $url]);
+            ->head($this->blobPublicUrl($pathname));
 
         return $response->successful();
     }
