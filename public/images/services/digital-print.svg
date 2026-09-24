@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Contoh digital print">
+  <rect width="800" height="600" fill="#eff6ff"/>
+  <rect x="80" y="80" width="320" height="400" rx="16" fill="#fff" stroke="#2563eb" stroke-width="8"/>
+  <rect x="110" y="120" width="260" height="20" rx="4" fill="#2563eb"/>
+  <rect x="110" y="160" width="220" height="12" rx="4" fill="#93c5fd"/>
+  <rect x="110" y="190" width="240" height="12" rx="4" fill="#93c5fd"/>
+  <rect x="110" y="240" width="260" height="160" rx="8" fill="#bfdbfe"/>
+  <rect x="420" y="140" width="280" height="360" rx="16" fill="#1e40af"/>
+  <rect x="450" y="180" width="220" height="16" rx="4" fill="#93c5fd"/>
+  <rect x="450" y="220" width="180" height="12" rx="4" fill="#60a5fa"/>
+  <rect x="450" y="250" width="200" height="12" rx="4" fill="#60a5fa"/>
+  <circle cx="560" cy="400" r="60" fill="#2563eb"/>
+  <text x="400" y="560" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="#0f172a">Digital Print</text>
+</svg>

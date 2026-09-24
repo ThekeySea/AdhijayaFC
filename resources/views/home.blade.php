@@ -1,65 +1,106 @@
 <x-app-layout>
-    <section class="relative overflow-hidden border-b border-border bg-surface">
-        <div class="pointer-events-none absolute inset-0 paper-grid opacity-50" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-primary-soft sm:h-72 sm:w-72" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-primary/10 sm:h-56 sm:w-56" aria-hidden="true"></div>
+    @php
+        $heroSlides = [
+            ['src' => 'images/hero/hero-1.jpg', 'height' => 1200, 'priority' => true],
+            ['src' => 'images/hero/hero-2.jpg', 'height' => 1200, 'priority' => false],
+            ['src' => 'images/hero/hero-3.jpg', 'height' => 1067, 'priority' => false],
+        ];
+    @endphp
 
-        <div class="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-            <div class="inline-flex items-center gap-2 rounded-lg border border-primary-line bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary">
-                <span class="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true"></span>
-                Jasa fotokopi & percetakan
-            </div>
-
-            <h1 class="mt-5 max-w-2xl text-balance text-3xl font-bold leading-[1.15] tracking-tight text-foreground sm:text-5xl">
-                Pesan layanan fotokopi tanpa chat berulang
-            </h1>
-            <p class="mt-5 max-w-xl text-base leading-relaxed text-slate-700 sm:text-lg">
-                Pilih layanan, isi detail pekerjaan, unggah file, lalu checkout. Status pesanan bisa dipantau langsung dari akun Anda.
-            </p>
-
-            <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('services.index') }}" class="inline-flex min-h-12 items-center rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark">
-                    Lihat layanan
-                </a>
-                @auth
-                    <a href="{{ route('services.index', ['category' => 'digital-print']) }}" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-6 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                        Mulai cetak
-                    </a>
-                @else
-                    <a href="{{ route('register') }}" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-6 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                        Buat akun
-                    </a>
-                @endauth
-            </div>
-
-            <dl class="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
-                <div class="rounded-xl border border-border bg-surface/80 px-4 py-3">
-                    <dt class="text-xs font-medium text-muted">1. Pilih layanan</dt>
-                    <dd class="mt-1 text-sm font-semibold text-foreground">Katalog jelas</dd>
-                </div>
-                <div class="rounded-xl border border-border bg-surface/80 px-4 py-3">
-                    <dt class="text-xs font-medium text-muted">2. Isi detail</dt>
-                    <dd class="mt-1 text-sm font-semibold text-foreground">Instruksi & file</dd>
-                </div>
-                <div class="rounded-xl border border-border bg-surface/80 px-4 py-3">
-                    <dt class="text-xs font-medium text-muted">3. Checkout</dt>
-                    <dd class="mt-1 text-sm font-semibold text-foreground">Bayar & pantau</dd>
-                </div>
-            </dl>
+    <x-hero-carousel id="hero" class="relative flex min-h-[36rem] flex-col overflow-hidden border-b border-border bg-foreground text-white sm:min-h-[42rem] lg:min-h-screen">
+        <div class="absolute inset-0" aria-hidden="true">
+            @foreach ($heroSlides as $i => $slide)
+                <img
+                    src="{{ asset($slide['src']) }}"
+                    alt=""
+                    width="1600"
+                    height="{{ $slide['height'] }}"
+                    class="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+                    :class="index === {{ $i }} ? 'opacity-100' : 'pointer-events-none opacity-0'"
+                    @if ($slide['priority']) fetchpriority="high" @endif
+                >
+            @endforeach
+            <div class="absolute inset-0 bg-linear-to-r from-[#0f172a]/95 via-[#1e3a5f]/85 to-[#2563eb]/45"></div>
+            <div class="absolute inset-0 bg-linear-to-t from-[#0f172a]/70 via-transparent to-[#0f172a]/30"></div>
         </div>
-    </section>
+
+        <div class="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-4 pb-4 pt-20 sm:px-6 sm:pb-8 sm:pt-24 lg:px-8 lg:pb-10 lg:pt-28">
+            <div class="max-w-2xl">
+                <h1 class="mt-4 text-balance text-3xl font-bold leading-[1.15] tracking-tight text-white sm:mt-5 sm:text-5xl lg:text-6xl">
+                    Pesan layanan fotokopi tanpa chat berulang
+                </h1>
+                <p class="mt-4 max-w-xl text-base leading-relaxed text-slate-100/90 sm:mt-5 sm:text-lg">
+                    Pilih layanan, isi detail pekerjaan, unggah file, lalu checkout. Status pesanan bisa dipantau langsung dari akun Anda.
+                </p>
+
+                <div class="mt-6 flex flex-wrap gap-3 sm:mt-8">
+                    <a href="{{ route('services.index') }}" class="inline-flex min-h-12 items-center rounded-lg bg-primary px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark">
+                        Lihat layanan
+                    </a>
+                    @auth
+                        <a href="{{ route('services.index', ['category' => 'digital-print']) }}" class="inline-flex min-h-12 items-center rounded-lg border border-white/40 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20">
+                            Mulai cetak
+                        </a>
+                    @else
+                        <a href="{{ route('register') }}" class="inline-flex min-h-12 items-center rounded-lg border border-white/40 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20">
+                            Buat akun
+                        </a>
+                    @endauth
+                </div>
+            </div>
+        </div>
+
+        <button
+            type="button"
+            class="absolute left-3 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/30 backdrop-blur-sm transition hover:bg-white/25"
+            @click="prev()"
+            aria-label="Slide sebelumnya"
+        >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+        </button>
+        <button
+            type="button"
+            class="absolute right-3 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/30 backdrop-blur-sm transition hover:bg-white/25"
+            @click="next()"
+            aria-label="Slide berikutnya"
+        >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+
+        <div class="relative z-20 flex items-center justify-center gap-2 pb-2 sm:pb-3">
+            <template x-for="i in [0, 1, 2]" :key="i">
+                <button
+                    type="button"
+                    class="h-2.5 rounded-full transition-all"
+                    :class="index === i ? 'w-7 bg-white' : 'w-2.5 bg-white/55'"
+                    @click="go(i)"
+                    :aria-label="'Buka slide ' + (i + 1)"
+                    :aria-current="index === i"
+                ></button>
+            </template>
+        </div>
+
+        <div class="relative z-20">
+            <x-business-stats
+                :service-count="$serviceCount"
+                :transaction-count="$transactionCount"
+                class="mx-auto max-w-6xl"
+            />
+        </div>
+    </x-hero-carousel>
 
     <section id="layanan" class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
-        <div class="flex flex-wrap items-end justify-between gap-4">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-primary">Katalog</p>
-                <h2 class="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Layanan</h2>
-                <p class="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-700 sm:text-base">Harga di bawah ini adalah harga contoh dan dapat diubah oleh admin.</p>
-            </div>
-            <a href="{{ route('services.index') }}" class="text-sm font-semibold text-primary transition hover:text-primary-dark hover:underline">
-                Lihat semua layanan →
-            </a>
-        </div>
+        <x-section-header
+            eyebrow="Katalog"
+            title="Layanan"
+            description="Harga di bawah ini adalah harga contoh dan dapat diubah oleh admin."
+            :href="route('services.index')"
+            link-label="Lihat semua layanan"
+        />
 
         @if ($categories->isNotEmpty())
             <div class="mt-6 flex flex-wrap gap-2">
@@ -79,22 +120,7 @@
         @else
             <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($services as $service)
-                    <a href="{{ route('services.show', $service) }}" class="group flex flex-col rounded-2xl border border-border bg-surface p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
-                        <div class="flex items-start justify-between gap-3">
-                            <span class="inline-flex rounded-lg bg-background px-2.5 py-1 text-xs font-medium text-muted transition group-hover:bg-primary-soft group-hover:text-primary">
-                                {{ $service->badgeLabel() }}
-                            </span>
-                            <span class="text-[11px] font-semibold uppercase tracking-wide text-primary">Harga contoh</span>
-                        </div>
-                        <h3 class="mt-4 text-base font-semibold text-foreground transition group-hover:text-primary">
-                            {{ $service->name }}
-                        </h3>
-                        <p class="mt-2 line-clamp-2 flex-1 text-[15px] leading-relaxed text-slate-700">{{ $service->description }}</p>
-                        <div class="mt-5 flex items-center justify-between border-t border-border pt-4">
-                            <span class="text-sm font-bold tabular-nums text-foreground">{{ $service->formattedPrice() }}<span class="font-medium text-muted">/{{ $service->unit }}</span></span>
-                            <span class="text-sm font-semibold text-primary">Lihat detail</span>
-                        </div>
-                    </a>
+                    <x-service-card :service="$service" />
                 @endforeach
             </div>
         @endif
@@ -103,27 +129,16 @@
     @if ($digitalPrintServices->isNotEmpty())
         <section id="digital-print" class="border-t border-border bg-background">
             <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
-                <div class="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-primary">Digital print</p>
-                        <h2 class="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Print A0–A5 & scan copy</h2>
-                        <p class="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-700 sm:text-base">Print ukuran besar hingga A5 dan scan copy untuk kebutuhan kantor, sekolah, dan acara.</p>
-                    </div>
-                    <a href="{{ route('services.index', ['category' => 'digital-print']) }}" class="text-sm font-semibold text-primary transition hover:text-primary-dark hover:underline">
-                        Semua digital print →
-                    </a>
-                </div>
+                <x-section-header
+                    eyebrow="Digital print"
+                    title="Print A0–A5 & scan copy"
+                    description="Print ukuran besar hingga A5 dan scan copy untuk kebutuhan kantor, sekolah, dan acara."
+                    :href="route('services.index', ['category' => 'digital-print'])"
+                    link-label="Semua digital print"
+                />
                 <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($digitalPrintServices as $service)
-                        <a href="{{ route('services.show', $service) }}" class="group flex flex-col rounded-2xl border border-border bg-surface p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
-                            <span class="inline-flex w-fit rounded-lg bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">{{ $service->badgeLabel() }}</span>
-                            <h3 class="mt-4 text-base font-semibold text-foreground transition group-hover:text-primary">{{ $service->name }}</h3>
-                            <p class="mt-2 line-clamp-2 flex-1 text-[15px] leading-relaxed text-slate-700">{{ $service->description }}</p>
-                            <div class="mt-5 flex items-center justify-between border-t border-border pt-4">
-                                <span class="text-sm font-bold tabular-nums text-foreground">{{ $service->formattedPrice() }}<span class="font-medium text-muted">/{{ $service->unit }}</span></span>
-                                <span class="text-sm font-semibold text-primary">Lihat detail</span>
-                            </div>
-                        </a>
+                        <x-service-card :service="$service" />
                     @endforeach
                 </div>
             </div>
@@ -133,79 +148,51 @@
     @if ($atkServices->isNotEmpty())
         <section id="atk" class="border-t border-border bg-surface">
             <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
-                <div class="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-primary">Alat tulis</p>
-                        <h2 class="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Pesan ATK</h2>
-                        <p class="mt-2 max-w-xl text-[15px] leading-relaxed text-slate-700 sm:text-base">Pulpen, buku, map, dan kebutuhan tulis lainnya — bisa sekalian dengan pesanan print.</p>
-                    </div>
-                    <a href="{{ route('services.index', ['type' => 'jual']) }}" class="text-sm font-semibold text-primary transition hover:text-primary-dark hover:underline">
-                        Semua ATK →
-                    </a>
-                </div>
+                <x-section-header
+                    eyebrow="Alat tulis"
+                    title="Pesan ATK"
+                    description="Pulpen, buku, map, dan kebutuhan tulis lainnya — bisa sekalian dengan pesanan print."
+                    :href="route('services.index', ['type' => 'jual'])"
+                    link-label="Semua ATK"
+                />
                 <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach ($atkServices as $service)
-                        <a href="{{ route('services.show', $service) }}" class="group flex flex-col rounded-2xl border border-border bg-background p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
-                            <span class="inline-flex w-fit rounded-lg bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">ATK</span>
-                            <h3 class="mt-4 text-base font-semibold text-foreground transition group-hover:text-primary">{{ $service->name }}</h3>
-                            <p class="mt-2 line-clamp-2 flex-1 text-[15px] leading-relaxed text-slate-700">{{ $service->description }}</p>
-                            <div class="mt-5 flex items-center justify-between border-t border-border pt-4">
-                                <span class="text-sm font-bold tabular-nums text-foreground">{{ $service->formattedPrice() }}<span class="font-medium text-muted">/{{ $service->unit }}</span></span>
-                                <span class="text-sm font-semibold text-primary">Pesan</span>
-                            </div>
-                        </a>
+                        <x-service-card :service="$service" cta="Pesan" surface="bg-background" />
                     @endforeach
                 </div>
             </div>
         </section>
     @endif
 
-    <section id="kontak" class="border-t border-border bg-surface">
-        <div class="mx-auto grid max-w-6xl gap-6 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:px-8">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-primary">Bantuan</p>
-                <h2 class="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Butuh penjelasan?</h2>
-                <p class="mt-3 max-w-md text-sm leading-relaxed text-muted">
-                    Nomor WhatsApp dan jam operasional tersedia di halaman Kontak. Admin siap membantu kebutuhan khusus.
-                </p>
-                <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="{{ route('kontak') }}" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                        Buka halaman kontak
-                    </a>
-                    @if ($whatsappUrl)
-                        <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center rounded-lg border border-border bg-surface px-5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                            Hubungi admin via WhatsApp
+    <section id="kontak" class="border-t border-border bg-background">
+        <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+            <div class="rounded-3xl border border-white/10 bg-linear-to-br from-[#0f172a] via-[#1e3a5f] to-[#2563eb] p-6 shadow-xl sm:p-10">
+                <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-10">
+                    <div class="max-w-xl">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-blue-200">Bantuan</p>
+                        <h2 class="mt-2 text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl">Butuh penjelasan?</h2>
+                        <p class="mt-3 text-sm leading-relaxed text-slate-200/90 sm:text-base">
+                            Nomor WhatsApp dan jam operasional tersedia di halaman Kontak. Admin siap membantu kebutuhan khusus.
+                        </p>
+                    </div>
+                    <div class="flex w-full flex-col gap-3 sm:w-auto sm:min-w-[15rem] sm:shrink-0">
+                        <a
+                            href="{{ route('kontak') }}"
+                            class="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-white px-5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a] active:scale-[0.98] active:bg-slate-200 sm:w-auto"
+                        >
+                            Buka halaman kontak
                         </a>
-                    @endif
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-border bg-background p-6">
-                <div class="rounded-xl border border-border bg-surface p-5">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-muted">Alur pesanan</p>
-                    <ol class="mt-4 space-y-4">
-                        <li class="flex gap-3">
-                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-xs font-bold text-primary">1</span>
-                            <div>
-                                <p class="text-sm font-semibold text-foreground">Pilih layanan</p>
-                                <p class="mt-0.5 text-sm text-muted">Lihat harga contoh di katalog.</p>
-                            </div>
-                        </li>
-                        <li class="flex gap-3">
-                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-xs font-bold text-primary">2</span>
-                            <div>
-                                <p class="text-sm font-semibold text-foreground">Isi detail pekerjaan</p>
-                                <p class="mt-0.5 text-sm text-muted">Cantumkan instruksi dan unggah file bila perlu.</p>
-                            </div>
-                        </li>
-                        <li class="flex gap-3">
-                            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-xs font-bold text-primary">3</span>
-                            <div>
-                                <p class="text-sm font-semibold text-foreground">Checkout & bayar</p>
-                                <p class="mt-0.5 text-sm text-muted">Pantau status pesanan dari akun Anda.</p>
-                            </div>
-                        </li>
-                    </ol>
+                        @if ($whatsappUrl)
+                            <a
+                                href="{{ $whatsappUrl }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-white/40 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f172a] active:scale-[0.98] active:bg-white/25 sm:w-auto"
+                            >
+                                Hubungi admin via WhatsApp
+                            </a>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

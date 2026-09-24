@@ -9,12 +9,6 @@
         </div>
     </x-slot>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-xl border border-primary-line bg-primary-soft px-4 py-3 text-sm font-medium text-foreground">
-            {{ session('status') }}
-        </div>
-    @endif
-
     <div class="mb-4 flex flex-wrap gap-2">
         <a href="{{ route('admin.orders.index') }}"
            class="inline-flex min-h-11 items-center rounded-lg px-3 text-xs font-semibold transition {{ $activeFilter === '' ? 'bg-primary-soft text-primary' : 'border border-border text-muted hover:bg-background hover:text-foreground' }}">
@@ -57,7 +51,7 @@
                                 </td>
                                 <td class="px-4 py-3 font-medium tabular-nums text-foreground">{{ $order->formattedTotal() }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex rounded-lg bg-primary-soft px-2 py-1 text-xs font-semibold text-primary">
+                                    <span class="inline-flex rounded-lg px-2 py-1 text-xs font-semibold {{ $order->status->badgeClass() }}">
                                         {{ $order->status->label() }}
                                     </span>
                                 </td>
@@ -82,7 +76,7 @@
                                 <p class="font-medium text-foreground">{{ $order->order_number }}</p>
                                 <p class="mt-1 text-sm text-muted">{{ $order->customer?->name ?? '—' }} · {{ $order->items_count }} item</p>
                                 <p class="mt-1 text-sm font-medium tabular-nums text-foreground">{{ $order->formattedTotal() }}</p>
-                                <span class="mt-2 inline-flex rounded-lg bg-primary-soft px-2 py-1 text-xs font-semibold text-primary">
+                                <span class="mt-2 inline-flex rounded-lg px-2 py-1 text-xs font-semibold {{ $order->status->badgeClass() }}">
                                     {{ $order->status->label() }}
                                 </span>
                             </div>

@@ -103,12 +103,7 @@ class MidtransService
                 'first_name' => $order->customer?->name ?? 'Pelanggan',
                 'email' => $order->customer?->email,
             ],
-            'item_details' => $order->items->map(fn ($item) => [
-                'id' => (string) $item->id,
-                'price' => (int) $item->unit_price_snapshot,
-                'quantity' => $item->quantity,
-                'name' => mb_substr($item->service_name_snapshot, 0, 50),
-            ])->values()->all(),
+            'item_details' => $this->itemDetailsFor($order),
         ];
 
         if ($method === 'bank_transfer') {
@@ -176,6 +171,56 @@ class MidtransService
         return $this->chargePayload($order, $stored + [
             'expires_at' => $expiresAt->toIso8601String(),
         ]);
+    }
+
+    /**
+     * item_details wajib berjumlah sama persis dengan gross_amount (amount_due).
+     * DP / biaya opsional membuat jumlah item berbeda → konsolidasi jadi 1 baris tagihan.
+     *
+     * @return list<array{id: string, price: int, quantity: int, name: string}>
+     */
+    private function itemDetailsFor(Order $order): array
+    {
+        $grossAmount = max(1, (int) $order->amount_due);
+
+        $items = $order->items
+            ->map(fn ($item) => [
+                'id' => (string) $item->id,
+                'price' => max(1, (int) $item->unit_price_snapshot),
+                'quantity' => max(1, (int) $item->quantity),
+                'name' => mb_substr($item->service_name_snapshot, 0, 50),
+            ])
+            ->values()
+            ->all();
+
+        $itemSum = array_reduce(
+            $items,
+            static fn (int $sum, array $item) => $sum + ($item['price'] * $item['quantity']),
+            0
+        );
+
+        if ($items !== [] && $itemSum === $grossAmount) {
+            return $items;
+        }
+
+        $name = $order->hasDownPayment()
+            ? 'Uang muka pesanan '.$order->order_number
+            : 'Tagihan pesanan '.$order->order_number;
+
+        if ($items !== []) {
+            $name = mb_substr(
+                collect($items)->pluck('name')->unique()->implode(', ').' — '.$name,
+                0,
+                50
+            );
+        }
+
+        return [[
+            'id' => $order->order_number,
+            'price' => $grossAmount,
+            'quantity' => 1,
+            'name' => $name,
+        ]];
     }
 
     /**

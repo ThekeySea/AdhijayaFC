@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\User;
@@ -115,7 +116,7 @@ class PaymentTest extends TestCase
             ->assertOk()
             ->assertSee('Uang muka (DP) 50%')
             ->assertSee('Rp 100.000')
-            ->assertSee('Sisa Rp 100.000');
+            ->assertSee('dibayar saat pesanan diterima');
     }
 
     public function test_customer_can_create_custom_charge_qris(): void
@@ -156,6 +157,87 @@ class PaymentTest extends TestCase
         Http::assertSent(function ($request) {
             return str_contains($request->url(), '/v2/charge')
                 && $request->data()['payment_type'] === 'qris';
+        });
+    }
+
+    public function test_charge_item_details_sum_matches_gross_amount_when_line_items_match(): void
+    {
+        Http::fake([
+            'api.sandbox.midtrans.com/v2/charge' => Http::response([
+                'transaction_id' => 'mid-124',
+                'transaction_status' => 'pending',
+                'qr_string' => '000201010211',
+            ], 201),
+        ]);
+
+        $user = User::factory()->create();
+        $order = Order::factory()->pendingPayment()->create([
+            'customer_id' => $user->id,
+            'subtotal' => 50000,
+            'total' => 50000,
+            'amount_due' => 50000,
+            'remaining_amount' => 0,
+        ]);
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'unit_price_snapshot' => 25000,
+            'quantity' => 2,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/pesanan/'.$order->id.'/pay', ['method' => 'qris'])
+            ->assertOk();
+
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+            $sum = array_reduce(
+                $data['item_details'],
+                static fn (int $total, array $item) => $total + ($item['price'] * $item['quantity']),
+                0
+            );
+
+            return $sum === (int) $data['transaction_details']['gross_amount'];
+        });
+    }
+
+    public function test_charge_item_details_sum_matches_gross_amount_for_down_payment(): void
+    {
+        Http::fake([
+            'api.sandbox.midtrans.com/v2/charge' => Http::response([
+                'transaction_id' => 'mid-125',
+                'transaction_status' => 'pending',
+                'qr_string' => '000201010211',
+            ], 201),
+        ]);
+
+        $user = User::factory()->create();
+        $order = Order::factory()->pendingPayment()->create([
+            'customer_id' => $user->id,
+            'subtotal' => 150000,
+            'total' => 150000,
+            'amount_due' => 75000,
+            'remaining_amount' => 75000,
+        ]);
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'unit_price_snapshot' => 150000,
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/pesanan/'.$order->id.'/pay', ['method' => 'qris'])
+            ->assertOk();
+
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+            $sum = array_reduce(
+                $data['item_details'] ?? [],
+                static fn (int $total, array $item) => $total + ($item['price'] * $item['quantity']),
+                0
+            );
+
+            return $sum === (int) $data['transaction_details']['gross_amount']
+                && (int) $data['transaction_details']['gross_amount'] === 75000;
         });
     }
 

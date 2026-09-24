@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-reverb="true">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,25 +25,23 @@
                     <span class="rounded-lg bg-white/10 px-2 py-1 text-xs font-semibold text-white lg:hidden">Admin</span>
                 </div>
 
+                @php
+                    $adminLinks = [
+                        ['route' => 'admin.dashboard', 'pattern' => 'admin.dashboard', 'label' => 'Dashboard'],
+                        ['route' => 'admin.reports.index', 'pattern' => 'admin.reports.*', 'label' => 'Laporan'],
+                        ['route' => 'admin.orders.index', 'pattern' => 'admin.orders.*', 'label' => 'Pesanan'],
+                        ['route' => 'admin.services.index', 'pattern' => 'admin.services.*', 'label' => 'Layanan'],
+                        ['route' => 'admin.categories.index', 'pattern' => 'admin.categories.*', 'label' => 'Kategori'],
+                        ['route' => 'admin.business-settings.edit', 'pattern' => 'admin.business-settings.*', 'label' => 'Info Usaha'],
+                    ];
+                @endphp
+
                 <nav class="hidden space-y-1 p-3 lg:block">
-                    <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition {{ request()->routeIs('admin.dashboard') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Dashboard
-                    </a>
-                    <a href="{{ route('admin.reports.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition {{ request()->routeIs('admin.reports.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Laporan
-                    </a>
-                    <a href="{{ route('admin.orders.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition {{ request()->routeIs('admin.orders.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Pesanan
-                    </a>
-                    <a href="{{ route('admin.services.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition {{ request()->routeIs('admin.services.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Layanan
-                    </a>
-                    <a href="{{ route('admin.categories.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition {{ request()->routeIs('admin.categories.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Kategori
-                    </a>
-                    <a href="{{ route('admin.business-settings.edit') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition {{ request()->routeIs('admin.business-settings.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Info Usaha
-                    </a>
+                    @foreach ($adminLinks as $link)
+                        <a href="{{ route($link['route']) }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition {{ request()->routeIs($link['pattern']) ? 'bg-white/20' : 'hover:bg-white/10' }}">
+                            {{ $link['label'] }}
+                        </a>
+                    @endforeach
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-white transition hover:bg-white/10">
@@ -53,24 +51,11 @@
                 </nav>
 
                 <nav class="flex gap-1 overflow-x-auto border-t border-white/10 px-3 py-2 lg:hidden">
-                    <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition {{ request()->routeIs('admin.dashboard') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Dashboard
-                    </a>
-                    <a href="{{ route('admin.reports.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition {{ request()->routeIs('admin.reports.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Laporan
-                    </a>
-                    <a href="{{ route('admin.orders.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition {{ request()->routeIs('admin.orders.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Pesanan
-                    </a>
-                    <a href="{{ route('admin.services.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition {{ request()->routeIs('admin.services.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Layanan
-                    </a>
-                    <a href="{{ route('admin.categories.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition {{ request()->routeIs('admin.categories.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Kategori
-                    </a>
-                    <a href="{{ route('admin.business-settings.edit') }}" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition {{ request()->routeIs('admin.business-settings.*') ? 'bg-white/20' : 'hover:bg-white/10' }}">
-                        Info Usaha
-                    </a>
+                    @foreach ($adminLinks as $link)
+                        <a href="{{ route($link['route']) }}" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition {{ request()->routeIs($link['pattern']) ? 'bg-white/20' : 'hover:bg-white/10' }}">
+                            {{ $link['label'] }}
+                        </a>
+                    @endforeach
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition hover:bg-white/10">
@@ -88,6 +73,11 @@
                 </header>
 
                 <main class="px-4 py-6 sm:px-6 lg:px-8">
+                    @if (session('status'))
+                        <div class="mb-4 rounded-xl border border-primary-line bg-primary-soft px-4 py-3 text-sm font-medium text-foreground" role="status">
+                            {{ session('status') }}
+                        </div>
+                    @endif
                     {{ $slot }}
                 </main>
             </div>

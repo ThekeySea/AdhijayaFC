@@ -136,6 +136,7 @@ class OrderFileUploadTest extends TestCase
         $this->post('/keranjang', ['service_id' => $service->id, 'quantity' => 1]);
 
         $this->post('/checkout', [
+            'phone' => '6281234567890',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '09.00-10.00',
             'files' => [UploadedFile::fake()->create('print-file.pdf', 50, 'application/pdf')],

@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'image_url',
     'min_quantity',
     'file_requirement',
+    'min_ready_minutes',
 ])]
 class Service extends Model
 {
@@ -47,7 +48,13 @@ class Service extends Model
             'price' => 'decimal:2',
             'is_active' => 'boolean',
             'min_quantity' => 'integer',
+            'min_ready_minutes' => 'integer',
         ];
+    }
+
+    public function minReadyMinutes(): int
+    {
+        return max(0, (int) ($this->min_ready_minutes ?? 30));
     }
 
     public function scopeActive($query)
@@ -113,6 +120,36 @@ class Service extends Model
         return 'Rp '.number_format((float) $this->price, 0, ',', '.');
     }
 
+    public function previewImageUrl(): string
+    {
+        if ($this->image_url !== null && $this->image_url !== '') {
+            if (str_contains($this->image_url, '://') || str_starts_with($this->image_url, '/') || str_starts_with($this->image_url, 'data:')) {
+                return $this->image_url;
+            }
+
+            return asset($this->image_url);
+        }
+
+        if ($this->type === self::TYPE_JUAL) {
+            return asset('images/services/atk.svg');
+        }
+
+        $slug = $this->category?->slug;
+
+        $map = [
+            'digital-print' => 'digital-print',
+            'cetak-buku' => 'cetak-buku',
+            'undangan-event' => 'undangan-event',
+            'alat-tulis-stationery' => 'alat-tulis-stationery',
+            'media-promosi-uv' => 'media-promosi-uv',
+            'lain-lain' => 'lain-lain',
+        ];
+
+        $file = $map[$slug] ?? 'lain-lain';
+
+        return asset('images/services/'.$file.'.svg');
+    }
+
     public function badgeLabel(): string
     {
         if ($this->category !== null) {
@@ -120,6 +157,19 @@ class Service extends Model
         }
 
         return $this->type === self::TYPE_JUAL ? 'ATK' : 'Layanan';
+    }
+
+    public function badgeClass(): string
+    {
+        if ($this->type === self::TYPE_JUAL) {
+            return 'bg-orange-50 text-orange-800 ring-1 ring-orange-200';
+        }
+
+        if ($this->category !== null) {
+            return $this->category->badgeClass();
+        }
+
+        return 'bg-blue-50 text-blue-800 ring-1 ring-blue-200';
     }
 
     public function requiresFile(): bool

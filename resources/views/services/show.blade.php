@@ -30,9 +30,11 @@
                 {{-- Left: info + opsi + file --}}
                 <div class="space-y-6 lg:col-span-2">
                     <div class="rounded-2xl border border-border bg-surface p-6 sm:p-8">
+                        <x-service-photo :service="$service" class="mb-6" alt="Contoh hasil {{ $service->name }}" />
+
                         <div class="flex flex-wrap items-center gap-2">
                             @if ($service->category)
-                                <span class="rounded-lg bg-background px-2.5 py-1 text-xs font-medium text-muted">{{ $service->category->name }}</span>
+                                <span class="rounded-lg {{ $service->category->badgeClass() }} px-2.5 py-1 text-xs font-semibold">{{ $service->category->name }}</span>
                             @endif
                             <span class="rounded-lg bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">Harga contoh</span>
                             @if ($service->is_active)

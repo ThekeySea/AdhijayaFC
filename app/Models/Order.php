@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\DeliveryMode;
+use App\Enums\FulfillmentType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use Database\Factories\OrderFactory;
@@ -24,6 +26,13 @@ use Illuminate\Support\Str;
     'amount_due',
     'remaining_amount',
     'customer_note',
+    'fulfillment_type',
+    'delivery_address',
+    'delivery_latitude',
+    'delivery_longitude',
+    'delivery_distance_km',
+    'delivery_fee',
+    'delivery_mode',
 ])]
 class Order extends Model
 {
@@ -40,7 +49,24 @@ class Order extends Model
             'total' => 'decimal:2',
             'amount_due' => 'decimal:2',
             'remaining_amount' => 'decimal:2',
+            'fulfillment_type' => FulfillmentType::class,
+            'delivery_latitude' => 'decimal:7',
+            'delivery_longitude' => 'decimal:7',
+            'delivery_distance_km' => 'decimal:2',
+            'delivery_fee' => 'decimal:2',
+            'delivery_mode' => DeliveryMode::class,
         ];
+    }
+
+    public function isDelivery(): bool
+    {
+        return $this->fulfillment_type === FulfillmentType::Delivery
+            || $this->fulfillment_type === 'delivery';
+    }
+
+    public function formattedDeliveryFee(): string
+    {
+        return 'Rp '.number_format((float) $this->delivery_fee, 0, ',', '.');
     }
 
     public function customer(): BelongsTo

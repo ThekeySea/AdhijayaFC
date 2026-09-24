@@ -44,16 +44,16 @@
                     </div>
                 </div>
                 <dl class="mt-5 space-y-2 text-sm">
-                    <div class="flex justify-between gap-4 rounded-lg bg-background px-3 py-2.5">
-                        <dt class="text-muted">Senin – Sabtu</dt>
-                        <dd class="font-semibold tabular-nums text-foreground">{{ $settings->hours_weekday ?: '08.00 – 20.00' }}</dd>
-                    </div>
-                    <div class="flex justify-between gap-4 rounded-lg bg-background px-3 py-2.5">
-                        <dt class="text-muted">Minggu</dt>
-                        <dd class="font-semibold {{ $settings->hours_sunday ? 'tabular-nums text-foreground' : 'text-muted' }}">{{ $settings->hours_sunday ?: 'Tutup' }}</dd>
-                    </div>
+                    @foreach ($hours as $hour)
+                        <div class="flex justify-between gap-4 rounded-lg bg-background px-3 py-2.5">
+                            <dt class="text-muted">{{ $hour['label'] }}</dt>
+                            <dd class="font-semibold {{ $hour['is_open'] ? 'tabular-nums text-foreground' : 'text-muted' }}">
+                                {{ $hour['range'] }}
+                            </dd>
+                        </div>
+                    @endforeach
                 </dl>
-                <p class="mt-4 text-xs text-muted">{{ $settings->hours_weekday ? 'Jam mengikuti pengaturan admin.' : 'Jam di atas bersifat contoh sampai dikonfirmasi.' }}</p>
+                <p class="mt-4 text-xs text-muted">Jam mengikuti pengaturan admin di Info Usaha.</p>
             </div>
 
             <div class="rounded-2xl border border-border bg-surface p-6">

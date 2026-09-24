@@ -214,6 +214,7 @@ class ServiceOptionGroupsTest extends TestCase
         ])->assertRedirect('/keranjang');
 
         $this->actingAs($user)->post('/checkout', [
+            'phone' => '6281234567890',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '10.00-11.00',
         ])->assertRedirect();
@@ -241,6 +242,7 @@ class ServiceOptionGroupsTest extends TestCase
         $service->update(['file_requirement' => Service::FILE_REQUIRED]);
 
         $this->actingAs($user)->post('/checkout', [
+            'phone' => '6281234567890',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '10.00-11.00',
         ])->assertSessionHasErrors('files');

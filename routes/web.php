@@ -33,6 +33,8 @@ Route::delete('/keranjang/{service}', [CartController::class, 'destroy'])->name(
 Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::get('/checkout/delivery-quote', [CheckoutController::class, 'deliveryQuote'])->name('checkout.delivery-quote');
+    Route::get('/checkout/slots', [CheckoutController::class, 'slots'])->name('checkout.slots');
 
     Route::get('/pesanan', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/pesanan/{order}', [OrderController::class, 'show'])->name('orders.show');

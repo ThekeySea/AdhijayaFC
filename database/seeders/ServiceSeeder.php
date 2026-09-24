@@ -836,6 +836,9 @@ class ServiceSeeder extends Seeder
             'type' => $type,
             'is_active' => true,
             'file_requirement' => $fileRequirement,
+            'image_url' => $type === Service::TYPE_JUAL
+                ? 'images/services/atk.svg'
+                : 'images/services/'.($row['category'] ?? 'lain-lain').'.svg',
         ]);
 
         foreach ($groups as $groupIndex => $group) {

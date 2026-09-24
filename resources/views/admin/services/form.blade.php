@@ -90,6 +90,15 @@
         </div>
     </div>
 
+    <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+            <x-input-label for="min_ready_minutes" value="Durasi minimal siap (menit)" />
+            <x-text-input id="min_ready_minutes" name="min_ready_minutes" type="number" min="0" max="10080" class="mt-1 block w-full" :value="old('min_ready_minutes', $service?->min_ready_minutes ?? 30)" />
+            <x-input-error class="mt-2" :messages="$errors->get('min_ready_minutes')" />
+            <p class="mt-1 text-xs text-muted">Slot checkout paling cepat = sekarang + nilai ini (max semua item di keranjang).</p>
+        </div>
+    </div>
+
     <div>
         <x-input-label for="file_requirement" value="File dari customer" />
         <select id="file_requirement" name="file_requirement" class="mt-1 block w-full rounded-lg border-border bg-surface px-3.5 py-2.5 text-sm text-foreground shadow-none transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">

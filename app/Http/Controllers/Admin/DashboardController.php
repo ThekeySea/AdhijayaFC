@@ -13,10 +13,15 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
-        $pendingCount = Order::query()->where('status', OrderStatus::PendingPayment)->count();
-        $paidCount = Order::query()->where('status', OrderStatus::Paid)->count();
-        $processingCount = Order::query()->where('status', OrderStatus::Processing)->count();
-        $readyCount = Order::query()->where('status', OrderStatus::Ready)->count();
+        $counts = Order::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $pendingCount = (int) ($counts[OrderStatus::PendingPayment->value] ?? 0);
+        $paidCount = (int) ($counts[OrderStatus::Paid->value] ?? 0);
+        $processingCount = (int) ($counts[OrderStatus::Processing->value] ?? 0);
+        $readyCount = (int) ($counts[OrderStatus::Ready->value] ?? 0);
         $activeServices = Service::query()->active()->count();
 
         $recentOrders = Order::query()

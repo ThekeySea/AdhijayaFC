@@ -13,6 +13,7 @@
         @include('layouts.navigation')
         <x-bottom-nav />
         <x-whatsapp-float />
+        <x-back-to-top />
 
         @isset($header)
             <header class="border-b border-border bg-surface">

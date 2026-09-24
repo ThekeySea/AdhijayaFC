@@ -21,6 +21,10 @@
 }
 
 @layer base {
+    [x-cloak] {
+        display: none !important;
+    }
+
     html {
         scroll-behavior: smooth;
         overflow-x: hidden;
@@ -95,10 +99,6 @@
     background-position: center;
 }
 
-@utility text-balance {
-    text-wrap: balance;
-}
-
 @media print {
     .no-print,
     aside,
@@ -113,10 +113,6 @@
 
     main {
         padding: 0 !important;
-    }
-
-    .print\:block {
-        display: block !important;
     }
 
     * {

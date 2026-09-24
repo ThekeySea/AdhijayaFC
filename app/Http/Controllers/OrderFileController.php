@@ -16,20 +16,6 @@ class OrderFileController extends Controller
     /**
      * @var list<string>
      */
-    public const ALLOWED_MIMES = [
-        'application/pdf',
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-        'application/zip',
-    ];
-
-    /**
-     * @var list<string>
-     */
     public const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx', 'txt', 'zip'];
 
     public const MAX_FILE_KB = 5120;

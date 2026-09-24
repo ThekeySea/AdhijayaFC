@@ -99,6 +99,7 @@ class TieredPricingTest extends TestCase
         ]);
 
         $this->actingAs($user)->post('/checkout', [
+            'phone' => '6281234567890',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '09.00-10.00',
         ])->assertRedirect();

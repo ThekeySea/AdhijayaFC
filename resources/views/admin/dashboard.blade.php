@@ -5,27 +5,25 @@
         <p class="mt-1.5 text-sm text-muted">Ringkasan operasional hari ini.</p>
     </x-slot>
 
+    @php
+        $stats = [
+            ['label' => 'Menunggu pembayaran', 'value' => $pendingCount, 'hint' => 'Pesanan dibuat', 'hintClass' => 'text-slate-700', 'status' => 'PENDING_PAYMENT', 'attr' => 'data-pending-count'],
+            ['label' => 'Perlu diproses', 'value' => $paidCount, 'hint' => 'Pembayaran', 'hintClass' => 'text-emerald-700', 'status' => 'PAID', 'attr' => ''],
+            ['label' => 'Sedang diproses', 'value' => $processingCount, 'hint' => 'Diproses', 'hintClass' => 'text-sky-700', 'status' => 'PROCESSING', 'attr' => ''],
+            ['label' => 'Siap diambil', 'value' => $readyCount, 'hint' => 'Siap diambil', 'hintClass' => 'text-amber-700', 'status' => 'READY', 'attr' => ''],
+        ];
+        $kelolaClass = 'inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary';
+    @endphp
+
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-2xl border border-border bg-surface p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted">Menunggu pembayaran</p>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-foreground">{{ $pendingCount }}</p>
-            <a href="{{ route('admin.orders.index', ['status' => 'PENDING_PAYMENT']) }}" class="mt-2 inline-block text-xs font-medium text-primary transition hover:underline">Lihat pesanan</a>
-        </div>
-        <div class="rounded-2xl border border-border bg-surface p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted">Perlu diproses</p>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-foreground">{{ $paidCount }}</p>
-            <a href="{{ route('admin.orders.index', ['status' => 'PAID']) }}" class="mt-2 inline-block text-xs font-medium text-primary transition hover:underline">Lihat pesanan</a>
-        </div>
-        <div class="rounded-2xl border border-border bg-surface p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted">Sedang diproses</p>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-foreground">{{ $processingCount }}</p>
-            <a href="{{ route('admin.orders.index', ['status' => 'PROCESSING']) }}" class="mt-2 inline-block text-xs font-medium text-primary transition hover:underline">Lihat pesanan</a>
-        </div>
-        <div class="rounded-2xl border border-border bg-surface p-5">
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted">Siap diambil</p>
-            <p class="mt-2 text-2xl font-bold tabular-nums text-foreground">{{ $readyCount }}</p>
-            <a href="{{ route('admin.orders.index', ['status' => 'READY']) }}" class="mt-2 inline-block text-xs font-medium text-primary transition hover:underline">Lihat pesanan</a>
-        </div>
+        @foreach ($stats as $stat)
+            <div class="rounded-2xl border border-border bg-surface p-5">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted">{{ $stat['label'] }}</p>
+                <p class="mt-2 text-2xl font-bold tabular-nums text-foreground" {!! $stat['attr'] !!}>{{ $stat['value'] }}</p>
+                <p class="mt-1 text-sm font-semibold {{ $stat['hintClass'] }}">{{ $stat['hint'] }}</p>
+                <a href="{{ route('admin.orders.index', ['status' => $stat['status']]) }}" class="mt-2 inline-block text-xs font-medium text-primary transition hover:underline">Lihat pesanan</a>
+            </div>
+        @endforeach
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-2">
@@ -41,7 +39,7 @@
                     <p class="mt-1 text-sm text-muted">Pesanan pelanggan akan tampil di sini.</p>
                 </div>
             @else
-                <ul class="mt-4 divide-y divide-border">
+                <ul class="mt-4 divide-y divide-border" data-recent-orders>
                     @foreach ($recentOrders as $order)
                         <li>
                             <a href="{{ route('admin.orders.show', $order) }}" class="flex flex-wrap items-center justify-between gap-3 py-3 transition hover:bg-background/60">
@@ -52,7 +50,7 @@
                                     </p>
                                 </div>
                                 <div class="flex shrink-0 flex-col items-end gap-1">
-                                    <span class="rounded-lg bg-primary-soft px-2 py-1 text-xs font-semibold text-primary">
+                                    <span class="rounded-lg px-2 py-1 text-xs font-semibold {{ $order->status->badgeClass() }}">
                                         {{ $order->status->label() }}
                                     </span>
                                     <span class="text-sm font-bold tabular-nums text-foreground">{{ $order->formattedTotal() }}</span>
@@ -103,15 +101,9 @@
     <div class="mt-6 rounded-2xl border border-border bg-surface p-5 sm:p-6">
         <h2 class="text-base font-semibold text-foreground">Kelola</h2>
         <div class="mt-4 flex flex-wrap gap-3">
-            <a href="{{ route('admin.orders.index') }}" class="inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                Kelola pesanan
-            </a>
-            <a href="{{ route('admin.services.index') }}" class="inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                Kelola layanan
-            </a>
-            <a href="{{ route('admin.categories.index') }}" class="inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary">
-                Kelola kategori
-            </a>
+            <a href="{{ route('admin.orders.index') }}" class="{{ $kelolaClass }}">Kelola pesanan</a>
+            <a href="{{ route('admin.services.index') }}" class="{{ $kelolaClass }}">Kelola layanan</a>
+            <a href="{{ route('admin.categories.index') }}" class="{{ $kelolaClass }}">Kelola kategori</a>
         </div>
     </div>
 </x-admin-layout>

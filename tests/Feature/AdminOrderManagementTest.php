@@ -69,7 +69,40 @@ class AdminOrderManagementTest extends TestCase
             ->assertOk()
             ->assertSee($order->order_number)
             ->assertSee('Status timeline')
-            ->assertSee('Pelanggan');
+            ->assertSee('Pelanggan')
+            ->assertSee('Lacak pesanan');
+    }
+
+    public function test_admin_order_detail_shows_step_tracking_colors(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $order = Order::factory()->paid()->create([
+            'status' => OrderStatus::Paid,
+        ]);
+
+        $html = (string) $this->actingAs($admin)
+            ->get('/admin/orders/'.$order->id)
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('bg-emerald-600', $html);
+        $this->assertStringContainsString('text-emerald-700', $html);
+        $this->assertStringContainsString('bg-slate-500', $html);
+    }
+
+    public function test_admin_order_list_uses_step_status_badge_colors(): void
+    {
+        $admin = User::factory()->admin()->create();
+        Order::factory()->paid()->create(['total' => 50000]);
+        Order::factory()->create(['status' => OrderStatus::Processing]);
+
+        $html = (string) $this->actingAs($admin)
+            ->get('/admin/orders')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('bg-emerald-50 text-emerald-700', $html);
+        $this->assertStringContainsString('bg-sky-50 text-sky-700', $html);
     }
 
     public function test_admin_can_advance_paid_order_to_processing(): void

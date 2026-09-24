@@ -31,8 +31,7 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:9999'],
             'detail' => ['nullable', 'string', 'max:500'],
             'options' => ['nullable'],
-            'files' => ['nullable', 'array', 'max:'.OrderFileController::MAX_FILES],
-            'files.*' => ['file', 'max:'.OrderFileController::MAX_FILE_KB, 'mimes:'.implode(',', OrderFileController::ALLOWED_EXTENSIONS)],
+            ...$this->fileRules(),
         ]);
 
         $service = Service::query()
@@ -69,8 +68,7 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:9999'],
             'detail' => ['nullable', 'string', 'max:500'],
             'options' => ['nullable'],
-            'files' => ['nullable', 'array', 'max:'.OrderFileController::MAX_FILES],
-            'files.*' => ['file', 'max:'.OrderFileController::MAX_FILE_KB, 'mimes:'.implode(',', OrderFileController::ALLOWED_EXTENSIONS)],
+            ...$this->fileRules(),
         ]);
 
         $quantity = (int) $validated['quantity'];
@@ -123,6 +121,21 @@ class CartController extends Controller
                 'quantity' => 'Minimal pembelian untuk '.$service->name.' adalah '.$service->min_quantity.' '.$service->unit.'.',
             ]);
         }
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    private function fileRules(): array
+    {
+        return [
+            'files' => ['nullable', 'array', 'max:'.OrderFileController::MAX_FILES],
+            'files.*' => [
+                'file',
+                'max:'.OrderFileController::MAX_FILE_KB,
+                'mimes:'.implode(',', OrderFileController::ALLOWED_EXTENSIONS),
+            ],
+        ];
     }
 
     /**

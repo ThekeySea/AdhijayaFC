@@ -23,7 +23,7 @@
                 <h1 class="mt-1 text-balance text-2xl font-bold tracking-tight text-foreground">{{ $order->order_number }}</h1>
                 <p class="mt-1 text-sm text-muted">Dibuat {{ $order->created_at->translatedFormat('d F Y, H:i') }}</p>
             </div>
-            <span class="rounded-lg bg-primary-soft px-3 py-1.5 text-sm font-semibold text-primary">
+            <span class="rounded-lg px-3 py-1.5 text-sm font-semibold {{ $order->status->badgeClass() }}">
                 {{ $order->status->label() }}
             </span>
         </div>
@@ -63,19 +63,55 @@
                     @endif
                 </div>
 
+                <div class="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h2 class="text-base font-semibold text-foreground">Penerimaan</h2>
+                        <span class="rounded-lg px-3 py-1.5 text-sm font-semibold {{ $order->fulfillment_type instanceof \App\Enums\FulfillmentType ? $order->fulfillment_type->badgeClass() : ($order->fulfillment_type === 'delivery' ? 'bg-sky-50 text-sky-700' : 'bg-emerald-50 text-emerald-700') }}">
+                            {{ $order->fulfillment_type instanceof \App\Enums\FulfillmentType ? $order->fulfillment_type->label() : ($order->fulfillment_type === 'delivery' ? 'Delivery' : 'Ambil di tempat') }}
+                        </span>
+                    </div>
+                    @if ($order->isDelivery())
+                        @if ($order->delivery_mode)
+                            <p class="mt-3 text-sm text-muted">
+                                Mode: {{ $order->delivery_mode instanceof \App\Enums\DeliveryMode ? $order->delivery_mode->label() : $order->delivery_mode }}
+                            </p>
+                        @endif
+                        @if ($order->delivery_address)
+                            <p class="mt-2 text-sm leading-relaxed text-foreground">{{ $order->delivery_address }}</p>
+                        @endif
+                        @if ($order->delivery_distance_km !== null)
+                            <p class="mt-2 text-xs text-muted tabular-nums">
+                                Jarak {{ number_format((float) $order->delivery_distance_km, 1, ',', '.') }} km · Ongkir {{ $order->formattedDeliveryFee() }}
+                            </p>
+                        @endif
+                    @else
+                        <p class="mt-3 text-sm text-muted">Ambil sendiri di toko sesuai jadwal di bawah.</p>
+                    @endif
+                </div>
+
                 @if ($order->booking)
                     <div class="rounded-2xl border border-border bg-surface p-5 sm:p-6">
-                        <h2 class="text-base font-semibold text-foreground">Jadwal</h2>
-                        <dl class="mt-4 grid gap-4 sm:grid-cols-2">
-                            <div class="rounded-xl bg-background p-4">
-                                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Tanggal</dt>
-                                <dd class="mt-1 text-sm font-semibold text-foreground">{{ $order->booking->formattedDate() }}</dd>
-                            </div>
-                            <div class="rounded-xl bg-background p-4">
-                                <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Slot waktu</dt>
-                                <dd class="mt-1 text-sm font-semibold text-foreground">{{ $order->booking->time_slot }}</dd>
-                            </div>
-                        </dl>
+                        <h2 class="text-base font-semibold text-foreground">
+                            {{ $order->isDelivery() && $order->delivery_mode === \App\Enums\DeliveryMode::Scheduled
+                                ? 'Jadwal kirim'
+                                : ($order->isDelivery() ? 'Info delivery' : 'Jadwal') }}
+                        </h2>
+                        @if ($order->booking->booking_date && $order->booking->time_slot)
+                            <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+                                <div class="rounded-xl bg-background p-4">
+                                    <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Tanggal</dt>
+                                    <dd class="mt-1 text-sm font-semibold text-foreground">{{ $order->booking->formattedDate() }}</dd>
+                                </div>
+                                <div class="rounded-xl bg-background p-4">
+                                    <dt class="text-xs font-semibold uppercase tracking-wide text-muted">Slot waktu</dt>
+                                    <dd class="mt-1 text-sm font-semibold text-foreground">{{ $order->booking->time_slot }}</dd>
+                                </div>
+                            </dl>
+                        @elseif ($order->isDelivery() && $order->delivery_mode === \App\Enums\DeliveryMode::Asap)
+                            <p class="mt-3 text-sm text-muted">Dikirim segera setelah pesanan selesai diproses.</p>
+                        @else
+                            <p class="mt-3 text-sm text-muted">Tanpa jadwal tetap.</p>
+                        @endif
                     </div>
                 @endif
 
@@ -141,6 +177,12 @@
                             <dt class="text-muted">Biaya tambahan</dt>
                             <dd class="font-medium tabular-nums text-foreground">{{ \App\Support\Cart::formatAmount((float) $order->additional_fee) }}</dd>
                         </div>
+                        @if ($order->isDelivery() && (float) $order->delivery_fee > 0)
+                            <div class="flex items-center justify-between gap-4">
+                                <dt class="text-muted">Ongkir</dt>
+                                <dd class="font-medium tabular-nums text-foreground">{{ $order->formattedDeliveryFee() }}</dd>
+                            </div>
+                        @endif
                         <div class="flex items-center justify-between gap-4 border-t border-border pt-3">
                             <dt class="font-semibold text-foreground">Total</dt>
                             <dd class="text-lg font-bold tabular-nums text-foreground">{{ $order->formattedTotal() }}</dd>

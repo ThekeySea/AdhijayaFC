@@ -33,6 +33,7 @@ class ServiceFactory extends Factory
             'image_url' => null,
             'min_quantity' => null,
             'file_requirement' => Service::FILE_NONE,
+            'min_ready_minutes' => 30,
         ];
     }
 

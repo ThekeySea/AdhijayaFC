@@ -80,14 +80,94 @@
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <x-input-label for="hours_weekday" value="Jam Senin – Sabtu" />
+                        <x-input-label for="hours_weekday" value="Jam Senin – Sabtu (legacy)" />
                         <x-text-input id="hours_weekday" name="hours_weekday" type="text" class="mt-1 block w-full" :value="old('hours_weekday', $settings->hours_weekday)" placeholder="08.00 – 20.00" />
                         <x-input-error class="mt-2" :messages="$errors->get('hours_weekday')" />
+                        <p class="mt-1 text-xs text-muted">Cadangan tampilan lama. Slot checkout pakai tabel di bawah.</p>
                     </div>
                     <div>
-                        <x-input-label for="hours_sunday" value="Jam Minggu" />
+                        <x-input-label for="hours_sunday" value="Jam Minggu (legacy)" />
                         <x-text-input id="hours_sunday" name="hours_sunday" type="text" class="mt-1 block w-full" :value="old('hours_sunday', $settings->hours_sunday)" placeholder="Tutup" />
                         <x-input-error class="mt-2" :messages="$errors->get('hours_sunday')" />
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-border bg-background p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-primary">Jam buka per hari</p>
+                    <p class="mt-1 text-xs text-muted">Mengatur slot checkout (pickup & delivery terjadwal). Hari tutup tidak ditawarkan.</p>
+
+                    <div class="mt-3 space-y-2">
+                        @foreach ($hours as $hour)
+                            @php
+                                $idx = $hour->day_of_week;
+                                $oldOpen = old("business_hours.{$idx}.is_open", $hour->is_open);
+                                $oldOpens = old("business_hours.{$idx}.opens_at", $hour->opens_at !== null ? substr($hour->opens_at, 0, 5) : '08:00');
+                                $oldCloses = old("business_hours.{$idx}.closes_at", $hour->closes_at !== null ? substr($hour->closes_at, 0, 5) : '20:00');
+                            @endphp
+                            <div class="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-surface p-3">
+                                <input type="hidden" name="business_hours[{{ $idx }}][day_of_week]" value="{{ $idx }}">
+                                <label class="flex min-w-32 items-center gap-2 text-sm font-medium text-foreground">
+                                    <input
+                                        type="checkbox"
+                                        name="business_hours[{{ $idx }}][is_open]"
+                                        value="1"
+                                        class="rounded border-border text-primary focus:ring-primary"
+                                        @checked($oldOpen)
+                                    >
+                                    {{ $hour->dayLabel() }}
+                                </label>
+                                <div>
+                                    <label class="text-[11px] font-semibold uppercase tracking-wide text-muted" for="opens_{{ $idx }}">Buka</label>
+                                    <input
+                                        id="opens_{{ $idx }}"
+                                        type="time"
+                                        name="business_hours[{{ $idx }}][opens_at]"
+                                        value="{{ $oldOpens }}"
+                                        class="mt-1 block rounded-lg border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold uppercase tracking-wide text-muted" for="closes_{{ $idx }}">Tutup</label>
+                                    <input
+                                        id="closes_{{ $idx }}"
+                                        type="time"
+                                        name="business_hours[{{ $idx }}][closes_at]"
+                                        value="{{ $oldCloses }}"
+                                        class="mt-1 block rounded-lg border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    >
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <x-input-error class="mt-2" :messages="$errors->get('business_hours')" />
+                </div>
+
+                <div class="rounded-xl border border-border bg-background p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-primary">Tarif delivery</p>
+                    <p class="mt-1 text-xs text-muted">Ongkir = max(min, jarak × tarif/km) − diskon per kelipatan belanja 100K. Radius maks membatasi alamat pelanggan.</p>
+
+                    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <x-input-label for="delivery_rate_per_km" value="Tarif per km (Rp)" />
+                            <x-text-input id="delivery_rate_per_km" name="delivery_rate_per_km" type="number" min="0" step="100" class="mt-1 block w-full" :value="old('delivery_rate_per_km', $settings->delivery_rate_per_km ?? 3000)" />
+                            <x-input-error class="mt-2" :messages="$errors->get('delivery_rate_per_km')" />
+                        </div>
+                        <div>
+                            <x-input-label for="delivery_min_fee" value="Biaya minimum (Rp)" />
+                            <x-text-input id="delivery_min_fee" name="delivery_min_fee" type="number" min="0" step="500" class="mt-1 block w-full" :value="old('delivery_min_fee', $settings->delivery_min_fee ?? 5000)" />
+                            <x-input-error class="mt-2" :messages="$errors->get('delivery_min_fee')" />
+                        </div>
+                        <div>
+                            <x-input-label for="delivery_discount_per_100k" value="Diskon per 100K belanja (Rp)" />
+                            <x-text-input id="delivery_discount_per_100k" name="delivery_discount_per_100k" type="number" min="0" step="500" class="mt-1 block w-full" :value="old('delivery_discount_per_100k', $settings->delivery_discount_per_100k ?? 5000)" />
+                            <x-input-error class="mt-2" :messages="$errors->get('delivery_discount_per_100k')" />
+                        </div>
+                        <div>
+                            <x-input-label for="delivery_max_radius_km" value="Radius maks (km)" />
+                            <x-text-input id="delivery_max_radius_km" name="delivery_max_radius_km" type="number" min="1" max="500" class="mt-1 block w-full" :value="old('delivery_max_radius_km', $settings->delivery_max_radius_km ?? 20)" />
+                            <x-input-error class="mt-2" :messages="$errors->get('delivery_max_radius_km')" />
+                            <p class="mt-1 text-xs text-muted">Default 20 KM. Di luar itu checkout delivery ditolak.</p>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\BusinessSetting;
+use App\Models\Order;
+use App\Models\Service;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,6 +27,21 @@ class GuestHomepageTest extends TestCase
         $response->assertSee('Fotocopy Adhijaya');
         $response->assertSee('Lihat layanan');
         $response->assertSee('Buka halaman kontak');
+    }
+
+    public function test_homepage_shows_business_stats_counts(): void
+    {
+        Service::factory()->create();
+        Service::factory()->create();
+        Service::factory()->inactive();
+        Order::factory()->create();
+        Order::factory()->create();
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Jasa Kami')
+            ->assertSee('Diandalkan Oleh')
+            ->assertSee('Telah berpengalaman');
     }
 
     public function test_guest_sees_floating_whatsapp_when_number_configured(): void

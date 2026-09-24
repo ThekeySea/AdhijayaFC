@@ -33,6 +33,13 @@ class OrderFactory extends Factory
             'amount_due' => 0,
             'remaining_amount' => 0,
             'customer_note' => null,
+            'fulfillment_type' => 'pickup',
+            'delivery_address' => null,
+            'delivery_latitude' => null,
+            'delivery_longitude' => null,
+            'delivery_distance_km' => null,
+            'delivery_fee' => 0,
+            'delivery_mode' => null,
         ];
     }
 

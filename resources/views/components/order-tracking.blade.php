@@ -4,11 +4,11 @@
 --}}
 @php
     $steps = [
-        ['key' => 'PENDING_PAYMENT', 'label' => 'Pesanan dibuat', 'hint' => 'Menunggu pembayaran'],
-        ['key' => 'PAID', 'label' => 'Pembayaran', 'hint' => 'Sudah dibayar'],
-        ['key' => 'PROCESSING', 'label' => 'Diproses', 'hint' => 'Sedang dikerjakan'],
-        ['key' => 'READY', 'label' => 'Siap diambil', 'hint' => 'Siap di toko'],
-        ['key' => 'COMPLETED', 'label' => 'Selesai', 'hint' => 'Pesanan selesai'],
+        ['key' => 'PENDING_PAYMENT', 'label' => 'Pesanan dibuat', 'hint' => 'Menunggu pembayaran', 'dot' => 'bg-slate-500', 'text' => 'text-slate-700', 'soft' => 'bg-slate-100'],
+        ['key' => 'PAID', 'label' => 'Pembayaran', 'hint' => 'Sudah dibayar', 'dot' => 'bg-emerald-600', 'text' => 'text-emerald-700', 'soft' => 'bg-emerald-50'],
+        ['key' => 'PROCESSING', 'label' => 'Diproses', 'hint' => 'Sedang dikerjakan', 'dot' => 'bg-sky-600', 'text' => 'text-sky-700', 'soft' => 'bg-sky-50'],
+        ['key' => 'READY', 'label' => 'Siap diambil', 'hint' => 'Siap di toko', 'dot' => 'bg-amber-500', 'text' => 'text-amber-700', 'soft' => 'bg-amber-50'],
+        ['key' => 'COMPLETED', 'label' => 'Selesai', 'hint' => 'Pesanan selesai', 'dot' => 'bg-primary', 'text' => 'text-primary', 'soft' => 'bg-primary-soft'],
     ];
 
     $orderStatus = $order->status->value;
@@ -28,14 +28,7 @@
             <h2 class="text-base font-semibold text-foreground">Lacak pesanan</h2>
             <p class="mt-1 text-sm text-muted">Ikuti progres pesanan dari pembayaran sampai selesai.</p>
         </div>
-        <span
-            @class([
-                'rounded-lg px-3 py-1.5 text-sm font-semibold',
-                'bg-red-50 text-red-700 border border-red-200' => $orderStatus === 'CANCELLED',
-                'bg-amber-50 text-amber-800 border border-amber-200' => $orderStatus === 'PAYMENT_FAILED',
-                'bg-primary-soft text-primary' => ! $isTerminal,
-            ])
-        >
+        <span class="rounded-lg border border-transparent px-3 py-1.5 text-sm font-semibold {{ $order->status->badgeClass() }}">
             {{ $order->status->label() }}
         </span>
     </div>
@@ -75,8 +68,8 @@
 
                     <span
                         @class([
-                            'relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
-                            'bg-primary text-white' => $isDone || $isCurrent,
+                            'relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white',
+                            $step['dot'] => $isDone || $isCurrent,
                             'border-2 border-border bg-surface text-muted' => $isPending,
                         ])
                     >
@@ -93,13 +86,13 @@
                         <p
                             @class([
                                 'text-sm font-semibold leading-tight',
-                                'text-foreground' => $isDone || $isCurrent,
+                                $step['text'] => $isDone || $isCurrent,
                                 'text-muted' => $isPending,
                             ])
                         >
                             {{ $step['label'] }}
                             @if ($isCurrent)
-                                <span class="ml-1 inline-flex rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                                <span @class(['ml-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold', $step['soft'], $step['text']])>
                                     Sekarang
                                 </span>
                             @endif

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Lib\WhatsApp;
+use App\Models\Order;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use Illuminate\View\View;
@@ -11,22 +12,21 @@ class HomeController extends Controller
 {
     public function index(): View
     {
-        $services = Service::query()
-            ->active()
+        $base = Service::query()->active();
+
+        $services = (clone $base)
             ->where('type', Service::TYPE_JASA)
             ->with('category')
             ->orderBy('name')
             ->limit(6)
             ->get();
 
-        $atkServices = Service::query()
-            ->active()
+        $atkServices = (clone $base)
             ->where('type', Service::TYPE_JUAL)
             ->orderBy('name')
             ->get();
 
-        $digitalPrintServices = Service::query()
-            ->active()
+        $digitalPrintServices = (clone $base)
             ->whereHas('category', fn ($q) => $q->where('slug', 'digital-print'))
             ->with('category')
             ->orderBy('name')
@@ -43,6 +43,8 @@ class HomeController extends Controller
             'atkServices' => $atkServices,
             'digitalPrintServices' => $digitalPrintServices,
             'categories' => $categories,
+            'serviceCount' => (clone $base)->count(),
+            'transactionCount' => Order::query()->count(),
             'whatsappUrl' => WhatsApp::isConfigured()
                 ? WhatsApp::url('Halo Admin Fotocopy Adhijaya, saya ingin bertanya soal layanan.')
                 : null,

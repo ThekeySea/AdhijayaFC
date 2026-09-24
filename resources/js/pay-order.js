@@ -1,4 +1,24 @@
 document.addEventListener('alpine:init', function () {
+    function postJson(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(body || {}),
+        }).then(function (response) {
+            return response.json().then(function (data) {
+                if (!response.ok) {
+                    throw new Error(data.message || 'Terjadi kesalahan.');
+                }
+                return data;
+            });
+        });
+    }
+
     window.Alpine.data('paymentOverlay', function (config) {
         return {
             open: false,
@@ -29,9 +49,6 @@ document.addEventListener('alpine:init', function () {
                 document.body.classList.remove('overflow-hidden');
             },
 
-            /**
-             * ✕ / Tutup = lewati pembayaran, anggap selesai.
-             */
             skipPayment: function () {
                 var self = this;
                 if (self.skipping) {
@@ -40,24 +57,7 @@ document.addEventListener('alpine:init', function () {
                 self.skipping = true;
                 self.error = '';
 
-                fetch(config.skipUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({}),
-                })
-                    .then(function (response) {
-                        return response.json().then(function (data) {
-                            if (!response.ok) {
-                                throw new Error(data.message || 'Gagal melewati pembayaran.');
-                            }
-                            return data;
-                        });
-                    })
+                postJson(config.skipUrl, {})
                     .then(function () {
                         self.stopPolling();
                         self.statusMessage = 'Pembayaran dilewati. Memuat ulang...';
@@ -93,27 +93,10 @@ document.addEventListener('alpine:init', function () {
                 self.error = '';
                 self.statusMessage = '';
 
-                fetch(config.payUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({
-                        method: self.method,
-                        bank: self.method === 'bank_transfer' ? self.bank : null,
-                    }),
+                postJson(config.payUrl, {
+                    method: self.method,
+                    bank: self.method === 'bank_transfer' ? self.bank : null,
                 })
-                    .then(function (response) {
-                        return response.json().then(function (data) {
-                            if (!response.ok) {
-                                throw new Error(data.message || 'Gagal menyiapkan pembayaran.');
-                            }
-                            return data;
-                        });
-                    })
                     .then(function (data) {
                         self.charge = data;
                         self.loading = false;
@@ -178,9 +161,7 @@ document.addEventListener('alpine:init', function () {
                                 }, 800);
                             }
                         })
-                        .catch(function () {
-                            /* polling silent fail */
-                        });
+                        .catch(function () {});
                 }, 3000);
             },
 

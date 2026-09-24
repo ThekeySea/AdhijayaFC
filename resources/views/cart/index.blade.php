@@ -11,7 +11,7 @@
         </div>
     </x-slot>
 
-    <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-6xl px-4 py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-8 sm:pb-8 lg:px-8">
         @if ($lines->isEmpty())
             <div class="rounded-2xl border border-border bg-surface p-10 text-center">
                 <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft text-primary">
@@ -31,10 +31,10 @@
             <div class="grid gap-6 lg:grid-cols-3">
                 <div class="space-y-4 lg:col-span-2">
                     @foreach ($lines as $line)
-                        <div class="rounded-2xl border border-border bg-surface p-5 sm:p-6" x-data>
-                            <div class="flex flex-wrap items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <a href="{{ route('services.show', $line['service']) }}" class="text-base font-semibold text-foreground transition hover:text-primary">
+                        <div class="rounded-2xl border border-border bg-surface p-4 sm:p-6" x-data>
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <a href="{{ route('services.show', $line['service']) }}" class="break-words text-base font-semibold text-foreground transition hover:text-primary">
                                         {{ $line['service']->name }}
                                     </a>
                                     <p class="mt-1 text-sm text-muted">
@@ -55,14 +55,14 @@
                                         </ul>
                                     @endif
                                     @if ($line['detail'] !== '')
-                                        <p class="mt-2 rounded-lg bg-background px-3 py-2 text-sm text-foreground">
+                                        <p class="mt-2 break-words rounded-lg bg-background px-3 py-2 text-sm text-foreground">
                                             <span class="font-medium text-muted">Pesan:</span> {{ $line['detail'] }}
                                         </p>
                                     @endif
                                     @if (! empty($line['files']) && count($line['files']) > 0)
                                         <ul class="mt-2 space-y-1">
                                             @foreach ($line['files'] as $file)
-                                                <li class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+                                                <li class="break-words rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
                                                     File: {{ $file['name'] ?? basename($file['path'] ?? '') }}
                                                 </li>
                                             @endforeach
@@ -75,7 +75,7 @@
                             </div>
 
                             <div class="mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4">
-                                <form method="POST" action="{{ route('cart.update', $line['service']) }}" class="flex items-end gap-3">
+                                <form method="POST" action="{{ route('cart.update', $line['service']) }}" class="flex w-full flex-wrap items-end gap-3">
                                     @csrf
                                     @method('PATCH')
                                     <div>
@@ -90,7 +90,7 @@
                                             class="mt-1 w-24 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                                         >
                                     </div>
-                                    <div class="flex-1 min-w-40">
+                                    <div class="min-w-0 basis-full sm:basis-auto sm:min-w-40 sm:flex-1">
                                         <label for="detail-{{ $line['service']->id }}" class="block text-xs font-semibold uppercase tracking-wide text-muted">Pesan</label>
                                         <input
                                             id="detail-{{ $line['service']->id }}"
@@ -144,7 +144,7 @@
                 </div>
 
                 <aside class="lg:col-span-1">
-                    <div class="rounded-2xl border border-border bg-surface p-6 shadow-sm lg:sticky lg:top-24">
+                    <div class="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6 lg:sticky lg:top-24">
                         <p class="text-xs font-semibold uppercase tracking-wide text-primary">Ringkasan</p>
 
                         <dl class="mt-4 space-y-3 text-sm">

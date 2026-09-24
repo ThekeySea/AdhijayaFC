@@ -12,12 +12,6 @@
         </div>
     </x-slot>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-xl border border-primary-line bg-primary-soft px-4 py-3 text-sm font-medium text-foreground">
-            {{ session('status') }}
-        </div>
-    @endif
-
     <div class="overflow-hidden rounded-2xl border border-border bg-surface">
         @if ($services->isEmpty())
             <div class="p-10 text-center">

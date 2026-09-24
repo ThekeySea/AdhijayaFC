@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BusinessSetting;
 use App\Models\User;
+use App\Services\OpeningHours;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -131,5 +132,68 @@ class BusinessSettingTest extends TestCase
         $response->assertOk();
         $response->assertSee('bg-foreground', false);
         $response->assertSee('text-white', false);
+    }
+
+    public function test_admin_page_shows_business_hours_editor(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->get('/admin/info-usaha');
+
+        $response->assertOk();
+        $response->assertSee('Jam buka per hari', false);
+        $response->assertSee('name="business_hours[0][day_of_week]"', false);
+        $response->assertSee('Tarif delivery', false);
+        $response->assertSee('name="delivery_rate_per_km"', false);
+        $response->assertSee('name="delivery_max_radius_km"', false);
+    }
+
+    public function test_admin_can_update_business_hours_and_delivery_rates(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->put('/admin/info-usaha', [
+            'name' => 'Adhijaya',
+            'delivery_rate_per_km' => 4000,
+            'delivery_min_fee' => 7000,
+            'delivery_discount_per_100k' => 10000,
+            'delivery_max_radius_km' => 15,
+            'business_hours' => [
+                ['day_of_week' => 0, 'is_open' => '1', 'opens_at' => '10:00', 'closes_at' => '16:00'],
+                ['day_of_week' => 1, 'is_open' => null, 'opens_at' => null, 'closes_at' => null],
+            ],
+        ]);
+
+        $response->assertRedirect()->assertSessionHas('status');
+
+        $this->assertDatabaseHas('business_settings', [
+            'delivery_rate_per_km' => 4000,
+            'delivery_max_radius_km' => 15,
+        ]);
+        $this->assertDatabaseHas('business_hours', [
+            'day_of_week' => 0,
+            'is_open' => true,
+            'opens_at' => '10:00:00',
+            'closes_at' => '16:00:00',
+        ]);
+        $this->assertDatabaseHas('business_hours', [
+            'day_of_week' => 1,
+            'is_open' => false,
+        ]);
+
+        OpeningHours::flush();
+        $this->assertFalse(OpeningHours::isOpenOn(now()->next('Monday')));
+        $this->assertTrue(OpeningHours::isOpenOn(now()->next('Sunday')));
+    }
+
+    public function test_kontak_page_lists_seven_days(): void
+    {
+        $response = $this->get('/kontak');
+
+        $response->assertOk();
+        $response->assertSee('Jam operasional');
+        $response->assertSee('Minggu');
+        $response->assertSee('Senin');
+        $response->assertSee('Sabtu');
     }
 }

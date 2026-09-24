@@ -45,7 +45,7 @@
                                     </p>
                                 </div>
                                 <div class="flex flex-col items-end gap-2">
-                                    <span class="rounded-lg bg-primary-soft px-2.5 py-1 text-xs font-semibold text-primary">
+                                    <span class="rounded-lg px-2.5 py-1 text-xs font-semibold {{ $order->status->badgeClass() }}">
                                         {{ $order->status->label() }}
                                     </span>
                                     <p class="text-base font-bold tabular-nums text-foreground">{{ $order->formattedTotal() }}</p>

@@ -18,7 +18,48 @@ class ServiceCatalogTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Fotokopi hitam putih');
-        $response->assertSee('Harga contoh');
+        $response->assertDontSee('>Harga contoh<', false);
+    }
+
+    public function test_service_card_shows_colored_category_badge(): void
+    {
+        Service::factory()->create(['name' => 'Print A4']);
+
+        $response = $this->get('/layanan');
+
+        $response->assertOk();
+        $response->assertSee('ring-1', false);
+        $response->assertSee('aspect-[4/3]', false);
+        $response->assertSee('images/services/', false);
+        $this->assertStringNotContainsString('>Harga contoh<', $response->getContent());
+    }
+
+    public function test_service_detail_shows_preview_photo(): void
+    {
+        $service = Service::factory()->create([
+            'name' => 'Print A4 Premium',
+            'slug' => 'print-a4-premium',
+            'image_url' => 'images/services/digital-print.svg',
+        ]);
+
+        $response = $this->get('/layanan/print-a4-premium');
+
+        $response->assertOk();
+        $response->assertSee('images/services/digital-print.svg', false);
+        $response->assertSee('Contoh hasil Print A4 Premium', false);
+    }
+
+    public function test_homepage_shows_hero_carousel_with_three_slides(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('images/hero/hero-1.jpg', false);
+        $response->assertSee('images/hero/hero-2.jpg', false);
+        $response->assertSee('images/hero/hero-3.jpg', false);
+        $response->assertSee('Slide sebelumnya', false);
+        $response->assertSee('Slide berikutnya', false);
+        $response->assertSee('bg-linear-to-r from-[#0f172a]/95', false);
     }
 
     public function test_guest_can_view_active_service_detail(): void

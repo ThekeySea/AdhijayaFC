@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Contoh cetak buku">
+  <rect width="800" height="600" fill="#f0fdf4"/>
+  <rect x="140" y="340" width="420" height="60" rx="10" fill="#059669"/>
+  <rect x="160" y="280" width="400" height="60" rx="10" fill="#10b981"/>
+  <rect x="180" y="220" width="360" height="60" rx="10" fill="#34d399"/>
+  <rect x="480" y="100" width="200" height="280" rx="12" fill="#fff" stroke="#059669" stroke-width="6"/>
+  <rect x="505" y="130" width="150" height="14" rx="4" fill="#059669"/>
+  <rect x="505" y="160" width="130" height="10" rx="4" fill="#94a3b8"/>
+  <rect x="505" y="185" width="140" height="10" rx="4" fill="#94a3b8"/>
+  <rect x="505" y="210" width="120" height="10" rx="4" fill="#94a3b8"/>
+  <text x="400" y="500" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="#0f172a">Cetak Buku &amp; Nota</text>
+</svg>

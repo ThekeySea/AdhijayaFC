@@ -42,18 +42,11 @@ class ServiceController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validated($request);
-        $tiers = $this->tierPayload($request);
-        $groups = $this->groupPayload($request);
-
-        $data['slug'] = Str::slug($data['name']);
-        $data['is_active'] = $request->boolean('is_active');
-        $data['category_id'] = $data['type'] === Service::TYPE_JUAL ? null : $data['category_id'];
-        $data['min_quantity'] = ($data['min_quantity'] ?? '') === '' ? null : (int) $data['min_quantity'];
+        $data = $this->prepareData($this->validated($request), $request);
 
         $service = Service::create($data);
-        $this->syncTiers($service, $tiers);
-        $this->syncOptionGroups($service, $groups);
+        $this->syncTiers($service, $this->tierPayload($request));
+        $this->syncOptionGroups($service, $this->groupPayload($request));
 
         return redirect()
             ->route('admin.services.index')
@@ -72,18 +65,11 @@ class ServiceController extends Controller
 
     public function update(Request $request, Service $service): RedirectResponse
     {
-        $data = $this->validated($request, $service);
-        $tiers = $this->tierPayload($request);
-        $groups = $this->groupPayload($request);
-
-        $data['slug'] = Str::slug($data['name']);
-        $data['is_active'] = $request->boolean('is_active');
-        $data['category_id'] = $data['type'] === Service::TYPE_JUAL ? null : $data['category_id'];
-        $data['min_quantity'] = ($data['min_quantity'] ?? '') === '' ? null : (int) $data['min_quantity'];
+        $data = $this->prepareData($this->validated($request, $service), $request);
 
         $service->update($data);
-        $this->syncTiers($service, $tiers);
-        $this->syncOptionGroups($service, $groups);
+        $this->syncTiers($service, $this->tierPayload($request));
+        $this->syncOptionGroups($service, $this->groupPayload($request));
 
         return redirect()
             ->route('admin.services.index')
@@ -114,6 +100,20 @@ class ServiceController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function prepareData(array $data, Request $request): array
+    {
+        $data['slug'] = Str::slug($data['name']);
+        $data['is_active'] = $request->boolean('is_active');
+        $data['category_id'] = $data['type'] === Service::TYPE_JUAL ? null : $data['category_id'];
+        $data['min_quantity'] = ($data['min_quantity'] ?? '') === '' ? null : (int) $data['min_quantity'];
+
+        return $data;
+    }
+
+    /**
      * @return Collection<int, ServiceCategory>
      */
     private function categories()
@@ -135,6 +135,7 @@ class ServiceController extends Controller
             'price' => ['required', 'numeric', 'min:0', 'max:999999999'],
             'image_url' => ['nullable', 'string', 'max:500'],
             'min_quantity' => ['nullable', 'integer', 'min:1', 'max:999999'],
+            'min_ready_minutes' => ['nullable', 'integer', 'min:0', 'max:10080'],
             'file_requirement' => ['nullable', 'string', Rule::in([
                 Service::FILE_NONE,
                 Service::FILE_OPTIONAL,
@@ -170,6 +171,9 @@ class ServiceController extends Controller
 
         $data['file_requirement'] = $data['file_requirement'] ?? Service::FILE_NONE;
         $data['min_quantity'] = $data['min_quantity'] ?? null;
+        $data['min_ready_minutes'] = ($data['min_ready_minutes'] ?? '') === '' || $data['min_ready_minutes'] === null
+            ? 30
+            : (int) $data['min_ready_minutes'];
 
         return $data;
     }

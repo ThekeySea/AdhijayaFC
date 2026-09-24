@@ -98,13 +98,36 @@ class OrderTest extends TestCase
             'payment_status' => PaymentStatus::Paid,
         ]);
 
-        $this->actingAs($user)
+        $html = (string) $this->actingAs($user)
             ->get('/pesanan/'.$order->id)
             ->assertOk()
             ->assertSee('Lacak pesanan')
             ->assertSee('Sedang dikerjakan')
             ->assertSee('Sekarang')
-            ->assertSee('Sudah dibayar');
+            ->assertSee('Sudah dibayar')
+            ->getContent();
+
+        $this->assertStringContainsString('bg-sky-600', $html);
+        $this->assertStringContainsString('text-sky-700', $html);
+    }
+
+    public function test_order_detail_tracking_uses_distinct_step_colors(): void
+    {
+        $user = User::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $user->id,
+            'status' => OrderStatus::Paid,
+            'payment_status' => PaymentStatus::Paid,
+        ]);
+
+        $html = (string) $this->actingAs($user)
+            ->get('/pesanan/'.$order->id)
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('bg-emerald-600', $html);
+        $this->assertStringContainsString('text-emerald-700', $html);
+        $this->assertStringContainsString('bg-slate-500', $html);
     }
 
     public function test_order_detail_tracking_shows_cancelled_state(): void

@@ -2,12 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Enums\DeliveryMode;
+use App\Enums\FulfillmentType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Models\BusinessHour;
+use App\Models\BusinessSetting;
 use App\Models\Order;
 use App\Models\Service;
 use App\Models\User;
+use App\Services\OpeningHours;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class CheckoutTest extends TestCase
@@ -27,6 +33,7 @@ class CheckoutTest extends TestCase
     {
         return array_merge([
             'phone' => '6281234567890',
+            'fulfillment_type' => 'pickup',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '10.00-11.00',
         ], $overrides);
@@ -80,6 +87,7 @@ class CheckoutTest extends TestCase
 
         $this->post('/checkout', [
             'phone' => '628111111111',
+            'fulfillment_type' => 'pickup',
             'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => '10.00-11.00',
         ])->assertSessionHasNoErrors();
@@ -150,8 +158,13 @@ class CheckoutTest extends TestCase
 
         $this->post('/checkout', $this->checkoutPayload([
             'pickup_date' => now()->subDay()->toDateString(),
+            'time_slot' => null,
+        ]))->assertSessionHasErrors('pickup_date');
+
+        $this->post('/checkout', $this->checkoutPayload([
+            'pickup_date' => now()->addDay()->toDateString(),
             'time_slot' => 'bukan-slot',
-        ]))->assertSessionHasErrors(['pickup_date', 'time_slot']);
+        ]))->assertSessionHasErrors('time_slot');
 
         $this->assertSame(0, Order::count());
     }
@@ -244,5 +257,171 @@ class CheckoutTest extends TestCase
         $this->assertSame(OrderStatus::PendingPayment, $order->status);
         $this->assertSame(PaymentStatus::Unpaid, $order->payment_status);
         $this->assertTrue($order->status->canBeCancelled());
+        $this->assertSame('pickup', $order->fulfillment_type instanceof FulfillmentType
+            ? $order->fulfillment_type->value
+            : $order->fulfillment_type);
+    }
+
+    public function test_checkout_delivery_requires_address_and_computes_fee(): void
+    {
+        $user = User::factory()->create();
+        $service = Service::factory()->create(['price' => 100000]);
+        $settings = BusinessSetting::current();
+        $settings->update([
+            'latitude' => -6.914744,
+            'longitude' => 107.609781,
+            'delivery_rate_per_km' => 3000,
+            'delivery_min_fee' => 5000,
+            'delivery_discount_per_100k' => 0,
+            'delivery_max_radius_km' => 20,
+        ]);
+        BusinessSetting::flushCurrent();
+
+        $this->actingAs($user);
+        $this->addServiceToCart($service, 1);
+
+        $this->post('/checkout', $this->checkoutPayload([
+            'fulfillment_type' => 'delivery',
+            'pickup_date' => null,
+            'time_slot' => null,
+        ]))->assertSessionHasErrors(['delivery_address', 'delivery_latitude', 'delivery_longitude', 'delivery_mode']);
+
+        $this->post('/checkout', $this->checkoutPayload([
+            'fulfillment_type' => 'delivery',
+            'delivery_address' => 'Jl. Merdeka No. 1',
+            'delivery_latitude' => -6.915744,
+            'delivery_longitude' => 107.610781,
+            'delivery_mode' => 'asap',
+            'pickup_date' => null,
+            'time_slot' => null,
+        ]))->assertSessionHasNoErrors();
+
+        $order = Order::sole();
+        $this->assertSame('delivery', $order->fulfillment_type instanceof FulfillmentType
+            ? $order->fulfillment_type->value
+            : $order->fulfillment_type);
+        $this->assertSame('asap', $order->delivery_mode instanceof DeliveryMode
+            ? $order->delivery_mode->value
+            : $order->delivery_mode);
+        $this->assertNotNull($order->delivery_fee);
+        $this->assertGreaterThan(0, (float) $order->delivery_fee);
+        $this->assertNull($order->booking->booking_date);
+        $this->assertNull($order->booking->time_slot);
+        $this->assertSame(100000 + (float) $order->delivery_fee, (float) $order->total, '', 0.01);
+    }
+
+    public function test_checkout_delivery_rejects_beyond_radius(): void
+    {
+        $user = User::factory()->create();
+        $service = Service::factory()->create(['price' => 5000]);
+        $settings = BusinessSetting::current();
+        $settings->update([
+            'latitude' => -6.914744,
+            'longitude' => 107.609781,
+            'delivery_max_radius_km' => 1,
+        ]);
+        BusinessSetting::flushCurrent();
+
+        $this->actingAs($user);
+        $this->addServiceToCart($service, 1);
+
+        $this->post('/checkout', $this->checkoutPayload([
+            'fulfillment_type' => 'delivery',
+            'delivery_address' => 'Jauh sekali',
+            'delivery_latitude' => -6.954744,
+            'delivery_longitude' => 107.649781,
+            'delivery_mode' => 'asap',
+            'pickup_date' => null,
+            'time_slot' => null,
+        ]))->assertSessionHasErrors('delivery_address');
+
+        $this->assertSame(0, Order::count());
+    }
+
+    public function test_closed_day_is_rejected_for_pickup(): void
+    {
+        $user = User::factory()->create();
+        $service = Service::factory()->create();
+        $date = now()->addDay()->toDateString();
+        $day = Carbon::parse($date)->dayOfWeek;
+
+        BusinessHour::updateOrCreate(
+            ['day_of_week' => $day],
+            ['is_open' => false, 'opens_at' => null, 'closes_at' => null],
+        );
+        OpeningHours::flush();
+
+        $this->actingAs($user);
+        $this->addServiceToCart($service, 1);
+
+        $this->post('/checkout', $this->checkoutPayload([
+            'pickup_date' => $date,
+            'time_slot' => '10.00-11.00',
+        ]))->assertSessionHasErrors('pickup_date');
+
+        $this->assertSame(0, Order::count());
+    }
+
+    public function test_min_ready_minutes_filters_today_slots(): void
+    {
+        $user = User::factory()->create();
+        $service = Service::factory()->create(['min_ready_minutes' => 60]);
+
+        $this->actingAs($user);
+        $this->addServiceToCart($service, 1);
+
+        $response = $this->get('/checkout');
+        $response->assertOk();
+        $response->assertSee('menit', false);
+    }
+
+    public function test_delivery_quote_endpoint_returns_fee(): void
+    {
+        $user = User::factory()->create();
+        $service = Service::factory()->create(['price' => 50000]);
+        $settings = BusinessSetting::current();
+        $settings->update([
+            'latitude' => -6.914744,
+            'longitude' => 107.609781,
+            'delivery_rate_per_km' => 3000,
+            'delivery_min_fee' => 5000,
+            'delivery_discount_per_100k' => 5000,
+            'delivery_max_radius_km' => 20,
+        ]);
+        BusinessSetting::flushCurrent();
+
+        $this->actingAs($user);
+        $this->addServiceToCart($service, 1);
+
+        $this->getJson('/checkout/delivery-quote?latitude=-6.915744&longitude=107.610781&subtotal=50000')
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('within_radius', true);
+
+        $this->assertIsNumeric($this->getJson('/checkout/delivery-quote?latitude=-6.915744&longitude=107.610781&subtotal=50000')->json('fee'));
+    }
+
+    public function test_slots_endpoint_follows_opening_hours(): void
+    {
+        $user = User::factory()->create();
+        $service = Service::factory()->create();
+        $date = now()->addDay()->toDateString();
+        $day = Carbon::parse($date)->dayOfWeek;
+
+        BusinessHour::updateOrCreate(
+            ['day_of_week' => $day],
+            ['is_open' => true, 'opens_at' => '10:00:00', 'closes_at' => '14:00:00'],
+        );
+        OpeningHours::flush();
+
+        $this->actingAs($user);
+        $this->addServiceToCart($service, 1);
+
+        $json = $this->getJson('/checkout/slots?date='.$date)->assertOk()->json();
+        $this->assertTrue($json['open']);
+        $this->assertContains('10.00-11.00', $json['slots']);
+        $this->assertContains('13.00-14.00', $json['slots']);
+        $this->assertNotContains('08.00-09.00', $json['slots']);
+        $this->assertNotContains('14.00-15.00', $json['slots']);
     }
 }
