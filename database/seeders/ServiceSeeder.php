@@ -827,6 +827,7 @@ class ServiceSeeder extends Seeder
         $groups = $row['option_groups'] ?? [];
         $tiers = $row['price_tiers'] ?? null;
         $fileRequirement = $row['file_requirement'] ?? Service::FILE_NONE;
+        $categorySlug = (string) ($row['category'] ?? 'lain-lain');
         unset($row['option_groups'], $row['price_tiers'], $row['file_requirement'], $row['category']);
 
         $service = Service::create([
@@ -838,7 +839,7 @@ class ServiceSeeder extends Seeder
             'file_requirement' => $fileRequirement,
             'image_url' => $type === Service::TYPE_JUAL
                 ? 'images/services/atk.svg'
-                : 'images/services/'.($row['category'] ?? 'lain-lain').'.svg',
+                : 'images/services/'.$categorySlug.'.svg',
         ]);
 
         foreach ($groups as $groupIndex => $group) {
