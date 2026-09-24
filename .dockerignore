@@ -8,7 +8,8 @@ tests
 storage/framework/views/*
 storage/logs/*
 storage/app/private/*
-bootstrap/cache/*.php
+bootstrap/cache
+!bootstrap/cache/.gitignore
 .phpunit.result.cache
 .phpactor.json
 public/build

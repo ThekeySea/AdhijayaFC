@@ -31,8 +31,9 @@ RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --no-p
 FROM dunglas/frankenphp:1-php8.4-bookworm AS runtime
 RUN install-php-extensions intl zip pdo_pgsql
 WORKDIR /app
-COPY --from=vendor /app/vendor ./vendor
 COPY . .
+RUN rm -rf vendor bootstrap/cache/*
+COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
 COPY Caddyfile /etc/frankenphp/Caddyfile
 COPY --from=vendor /usr/bin/composer /usr/bin/composer
@@ -42,16 +43,21 @@ RUN mkdir -p \
         storage/framework/views \
         storage/logs \
         bootstrap/cache \
+    && test ! -d vendor/laravel/boost \
+    && test ! -f bootstrap/cache/packages.php \
+    && composer dump-autoload --optimize --classmap-authoritative --no-dev --no-scripts \
+    && php artisan package:discover --ansi \
     && chown -R www-data:www-data storage bootstrap/cache \
-    && composer dump-autoload --optimize --classmap-authoritative --no-dev \
-    && (php artisan package:discover --ansi || true) \
     && rm -f /usr/bin/composer
+COPY entrypoint.vercel.sh /usr/local/bin/entrypoint.vercel.sh
+RUN chmod +x /usr/local/bin/entrypoint.vercel.sh
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
     CACHE_STORE=array \
     SESSION_DRIVER=database \
     QUEUE_CONNECTION=sync \
+    DB_PORT=5432 \
     PORT=80
 USER www-data
-CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]
+CMD ["/usr/local/bin/entrypoint.vercel.sh"]

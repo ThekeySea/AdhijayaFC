@@ -3,7 +3,7 @@
     encode zstd gzip
 
     php_server {
-        try_files {path}
+        try_files {path} {path}/index.php index.php
         resolve_root_symlink
     }
 }

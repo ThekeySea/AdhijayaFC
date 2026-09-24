@@ -86,12 +86,16 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
+            'url' => match (true) {
+                blank(env('DB_URL')) => env('DB_POSTGRES_URL'),
+                str_contains((string) env('DB_URL'), 'GANTI_DENGAN') => env('DB_POSTGRES_URL'),
+                default => env('DB_URL'),
+            },
+            'host' => env('DB_HOST', env('DB_PGHOST', '127.0.0.1')),
             'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'database' => env('DB_DATABASE', env('DB_PGDATABASE', 'laravel')),
+            'username' => env('DB_USERNAME', env('DB_PGUSER', 'root')),
+            'password' => env('DB_PASSWORD', env('DB_PGPASSWORD', '')),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
