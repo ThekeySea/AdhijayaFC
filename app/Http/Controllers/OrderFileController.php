@@ -8,6 +8,8 @@ use App\Models\OrderFile;
 use App\Support\OrderFileStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderFileController extends Controller
@@ -73,7 +75,7 @@ class OrderFileController extends Controller
         return back()->with('status', $incoming.' file berhasil diunggah.');
     }
 
-    public function download(Request $request, Order $order, OrderFile $file): StreamedResponse
+    public function download(Request $request, Order $order, OrderFile $file): Response|StreamedResponse
     {
         abort_unless($file->order_id === $order->id, 404);
         abort_unless(
@@ -81,7 +83,24 @@ class OrderFileController extends Controller
             403
         );
 
-        abort_unless($file->existsOnDisk(), 404);
+        $exists = $file->existsOnDisk();
+        $storage = $this->storage;
+
+        if (! $exists) {
+            $response = response('missing', 404, [
+                'X-Dbg-Exists' => '0',
+                'X-Dbg-Path' => (string) $file->storage_path,
+                'X-Dbg-UsesBlob' => $storage->usesBlob() ? '1' : '0',
+                'X-Dbg-Driver' => (string) config('filesystems.order_files.driver'),
+                'X-Dbg-TokenLen' => (string) strlen((string) config('filesystems.order_files.token')),
+                'X-Dbg-OidcLen' => (string) strlen((string) config('filesystems.order_files.oidc_token')),
+                'X-Dbg-Store' => (string) config('filesystems.order_files.store_id'),
+                'X-Dbg-Access' => (string) config('filesystems.order_files.access'),
+                'X-Dbg-LocalExists' => Storage::disk('local')->exists((string) $file->storage_path) ? '1' : '0',
+            ]);
+
+            return $response;
+        }
 
         return $this->storage->download($file->storage_path, $file->file_name, $file->mime_type ?: 'application/octet-stream');
     }
