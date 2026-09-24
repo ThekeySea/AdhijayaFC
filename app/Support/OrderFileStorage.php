@@ -131,7 +131,11 @@ class OrderFileStorage
 
     private function normalizedStoreId(): string
     {
-        return $this->blobStoreId();
+        $storeId = trim($this->blobStoreId());
+
+        return str_starts_with($storeId, 'store_')
+            ? substr($storeId, 6)
+            : $storeId;
     }
 
     private function blobPublicUrl(string $pathname): string
@@ -163,12 +167,10 @@ class OrderFileStorage
         ];
 
         if ($this->isOidcAuth()) {
-            $storeId = $this->blobStoreId();
+            $storeId = $this->normalizedStoreId();
 
             if ($storeId !== '') {
-                $headers['x-vercel-blob-store-id'] = str_starts_with($storeId, 'store_')
-                    ? substr($storeId, 6)
-                    : $storeId;
+                $headers['x-vercel-blob-store-id'] = $storeId;
             }
         }
 
@@ -190,36 +192,6 @@ class OrderFileStorage
         ];
     }
 
-    /**
-     * @return list<string>
-     */
-    private function blobUrlCandidates(string $pathname): array
-    {
-        $storeId = trim((string) config('filesystems.order_files.store_id'));
-        $access = $this->blobAccess();
-        $encoded = $this->encodePath($pathname);
-
-        if ($storeId === '') {
-            return [self::BLOB_API_URL];
-        }
-
-        $ids = [$storeId];
-
-        if (str_starts_with($storeId, 'store_')) {
-            $ids[] = substr($storeId, 6);
-        } else {
-            $ids[] = 'store_'.$storeId;
-        }
-
-        $urls = [];
-
-        foreach (array_unique($ids) as $id) {
-            $urls[] = sprintf('https://%s.%s.blob.vercel-storage.com/%s', $id, $access, $encoded);
-        }
-
-        return array_values(array_unique($urls));
-    }
-
     private function blobPut(string $pathname, string $contents, string $mime): void
     {
         Http::withHeaders($this->blobControlHeaders($mime))
@@ -230,41 +202,31 @@ class OrderFileStorage
 
     private function blobGet(string $pathname): string
     {
-        $lastStatus = null;
+        $url = $this->blobPublicUrl($pathname);
+        $query = ['cache' => '0'];
+        $response = Http::withHeaders($this->blobObjectHeaders())
+            ->get($url.'?'.http_build_query($query));
 
-        foreach ($this->blobUrlCandidates($pathname) as $url) {
-            $response = Http::withHeaders($this->blobObjectHeaders())->get($url);
-
-            if ($response->successful()) {
-                return $response->body();
-            }
-
-            $lastStatus = $response->status();
+        if ($response->successful()) {
+            return $response->body();
         }
 
-        throw new \RuntimeException('Blob download failed with status '.($lastStatus ?? 'unknown'));
+        throw new \RuntimeException('Blob download failed with status '.$response->status());
     }
 
     private function blobExists(string $pathname): bool
     {
-        foreach ($this->blobUrlCandidates($pathname) as $url) {
-            $response = Http::withHeaders($this->blobObjectHeaders())->head($url);
+        $response = Http::withHeaders($this->blobControlHeaders())
+            ->get(self::BLOB_API_URL.'?'.http_build_query(['url' => $pathname]));
 
-            if ($response->successful()) {
-                return true;
-            }
-        }
-
-        return false;
+        return $response->successful();
     }
 
     private function blobDelete(string $pathname): void
     {
-        $urls = $this->blobUrlCandidates($pathname);
-
         Http::withHeaders($this->blobControlHeaders('application/json'))
             ->post(self::BLOB_API_URL.'/delete', [
-                'urls' => $urls,
+                'urls' => [$this->blobPublicUrl($pathname)],
             ]);
     }
 
