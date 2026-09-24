@@ -2,6 +2,7 @@
 
 echo "[entrypoint] env DB_PORT=${DB_PORT:-unset} DB_CONNECTION=${DB_CONNECTION:-unset} DB_URL_set=$([ -n "${DB_URL:-}" ] && echo yes || echo no) DB_POSTGRES_URL_set=$([ -n "${DB_POSTGRES_URL:-}" ] && echo yes || echo no)" >&2
 echo "[entrypoint] .env_exists=$([ -f /app/.env ] && echo yes || echo no)" >&2
+echo "[entrypoint] OIDC_set=$([ -n "${VERCEL_OIDC_TOKEN:-}" ] && echo yes || echo no) OIDC_len=${#VERCEL_OIDC_TOKEN} BLOB_STORE_ID=${BLOB_STORE_ID:-unset} ORDER_FILES_DRIVER=${ORDER_FILES_DRIVER:-unset}" >&2
 
 # Neon: pakai non-pooling endpoint untuk migrasi/seed (pooler/pgbouncer gagal untuk DDL)
 if [ -n "${DB_POSTGRES_URL_NON_POOLING:-}" ]; then

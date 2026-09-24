@@ -94,6 +94,8 @@ class OrderFileController extends Controller
                 'X-Dbg-Driver' => (string) config('filesystems.order_files.driver'),
                 'X-Dbg-TokenLen' => (string) strlen((string) config('filesystems.order_files.token')),
                 'X-Dbg-OidcLen' => (string) strlen((string) config('filesystems.order_files.oidc_token')),
+                'X-Dbg-HeaderOidcLen' => (string) strlen((string) $request->headers->get('x-vercel-oidc-token', '')),
+                'X-Dbg-HasHeaderOidc' => ($request->headers->has('x-vercel-oidc-token') ? '1' : '0'),
                 'X-Dbg-Store' => (string) config('filesystems.order_files.store_id'),
                 'X-Dbg-Access' => (string) config('filesystems.order_files.access'),
                 'X-Dbg-LocalExists' => Storage::disk('local')->exists((string) $file->storage_path) ? '1' : '0',

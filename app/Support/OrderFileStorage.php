@@ -100,7 +100,7 @@ class OrderFileStorage
     }
 
     /**
-     * Prioritas: BLOB_READ_WRITE_TOKEN, lalu VERCEL_OIDC_TOKEN (OIDC di Vercel).
+     * Prioritas: BLOB_READ_WRITE_TOKEN, lalu VERCEL_OIDC_TOKEN (env), lalu header request OIDC (container runtime).
      */
     private function resolveAuthToken(): string
     {
@@ -110,7 +110,13 @@ class OrderFileStorage
             return $readWrite;
         }
 
-        return trim((string) config('filesystems.order_files.oidc_token'));
+        $oidc = trim((string) config('filesystems.order_files.oidc_token'));
+
+        if ($oidc !== '') {
+            return $oidc;
+        }
+
+        return trim((string) request()->headers->get('x-vercel-oidc-token', ''));
     }
 
     private function isOidcAuth(): bool
