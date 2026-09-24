@@ -119,12 +119,6 @@ class OrderFileStorage
         return trim((string) request()->headers->get('x-vercel-oidc-token', ''));
     }
 
-    private function isOidcAuth(): bool
-    {
-        return trim((string) config('filesystems.order_files.token')) === ''
-            && $this->resolveAuthToken() !== '';
-    }
-
     private function blobAccess(): string
     {
         return (string) config('filesystems.order_files.access', 'private');
@@ -200,16 +194,10 @@ class OrderFileStorage
 
     private function blobPut(string $pathname, string $contents, string $mime): void
     {
-        $response = Http::withHeaders($this->blobControlHeaders($mime))
+        Http::withHeaders($this->blobControlHeaders($mime))
             ->withBody($contents, $mime)
             ->put(self::BLOB_API_URL.'/?'.http_build_query(['pathname' => $pathname]))
             ->throw();
-
-        logger()->info('blob.put', [
-            'pathname' => $pathname,
-            'status' => $response->status(),
-            'body' => $response->body(),
-        ]);
     }
 
     private function blobGet(string $pathname): string
@@ -217,13 +205,6 @@ class OrderFileStorage
         $url = $this->blobPublicUrl($pathname);
         $response = Http::withHeaders($this->blobObjectHeaders())
             ->get($url.'?'.http_build_query(['cache' => '0']));
-
-        logger()->info('blob.get', [
-            'pathname' => $pathname,
-            'url' => $url,
-            'status' => $response->status(),
-            'body_prefix' => substr($response->body(), 0, 200),
-        ]);
 
         if ($response->successful()) {
             return $response->body();
@@ -237,23 +218,14 @@ class OrderFileStorage
         $control = Http::withHeaders($this->blobControlHeaders())
             ->get(self::BLOB_API_URL.'?'.http_build_query(['url' => $pathname]));
 
+        if ($control->successful()) {
+            return true;
+        }
+
         $url = $this->blobPublicUrl($pathname);
         $head = Http::withHeaders($this->blobObjectHeaders())->head($url);
-        $get = Http::withHeaders($this->blobObjectHeaders())->get($url);
 
-        logger()->info('blob.exists', [
-            'pathname' => $pathname,
-            'control_status' => $control->status(),
-            'control_body' => substr($control->body(), 0, 300),
-            'head_status' => $head->status(),
-            'get_status' => $get->status(),
-            'url' => $url,
-            'store_id' => $this->normalizedStoreId(),
-            'uses_oidc' => $this->isOidcAuth(),
-            'token_len' => strlen($this->resolveAuthToken()),
-        ]);
-
-        return $control->successful() || $head->successful() || $get->successful();
+        return $head->successful();
     }
 
     private function blobDelete(string $pathname): void
