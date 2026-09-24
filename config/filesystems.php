@@ -80,6 +80,7 @@ return [
     'order_files' => [
         'driver' => env('ORDER_FILES_DRIVER', 'local'),
         'token' => env('BLOB_READ_WRITE_TOKEN'),
+        'oidc_token' => env('VERCEL_OIDC_TOKEN'),
         'store_id' => env('BLOB_STORE_ID'),
         'access' => env('BLOB_ACCESS', 'private'),
     ],

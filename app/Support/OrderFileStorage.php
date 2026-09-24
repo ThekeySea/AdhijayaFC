@@ -10,14 +10,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderFileStorage
 {
-    private const BLOB_URL = 'https://blob.vercel-storage.com';
+    private const BLOB_API_URL = 'https://vercel.com/api/blob';
 
-    private const BLOB_API_VERSION = '7';
+    private const BLOB_API_VERSION = '12';
 
     public function usesBlob(): bool
     {
         return config('filesystems.order_files.driver') === 'blob'
-            && (bool) config('filesystems.order_files.token');
+            && $this->resolveAuthToken() !== '';
     }
 
     public function storeUploadedFile(UploadedFile $file, string $directory): ?string
@@ -96,12 +96,27 @@ class OrderFileStorage
             ]);
         }
 
-        return Storage::disk('local')->download($path, $downloadName);
+        return Storage::disk('local')->download($path, $downloadName, ['Content-Type' => $mime]);
     }
 
-    private function blobToken(): string
+    /**
+     * Prioritas: BLOB_READ_WRITE_TOKEN, lalu VERCEL_OIDC_TOKEN (OIDC di Vercel).
+     */
+    private function resolveAuthToken(): string
     {
-        return (string) config('filesystems.order_files.token');
+        $readWrite = trim((string) config('filesystems.order_files.token'));
+
+        if ($readWrite !== '') {
+            return $readWrite;
+        }
+
+        return trim((string) config('filesystems.order_files.oidc_token'));
+    }
+
+    private function isOidcAuth(): bool
+    {
+        return trim((string) config('filesystems.order_files.token')) === ''
+            && $this->resolveAuthToken() !== '';
     }
 
     private function blobAccess(): string
@@ -114,13 +129,20 @@ class OrderFileStorage
         return (string) config('filesystems.order_files.store_id');
     }
 
-    private function blobPublicUrl(string $pathname): string
+    private function normalizedStoreId(): string
     {
         $storeId = $this->blobStoreId();
+
+        return str_starts_with($storeId, 'store_') ? substr($storeId, 6) : $storeId;
+    }
+
+    private function blobPublicUrl(string $pathname): string
+    {
+        $storeId = $this->normalizedStoreId();
         $access = $this->blobAccess();
 
         if ($storeId === '') {
-            return self::BLOB_URL.'/'.$this->encodePath($pathname);
+            return self::BLOB_API_URL;
         }
 
         return sprintf(
@@ -137,10 +159,18 @@ class OrderFileStorage
     private function blobHeaders(?string $mime = null): array
     {
         $headers = [
-            'Authorization' => 'Bearer '.$this->blobToken(),
+            'Authorization' => 'Bearer '.$this->resolveAuthToken(),
             'x-api-version' => self::BLOB_API_VERSION,
             'access' => $this->blobAccess(),
         ];
+
+        if ($this->isOidcAuth()) {
+            $storeId = $this->normalizedStoreId();
+
+            if ($storeId !== '') {
+                $headers['x-vercel-blob-store-id'] = $storeId;
+            }
+        }
 
         if ($mime !== null) {
             $headers['x-content-type'] = $mime;
@@ -154,7 +184,7 @@ class OrderFileStorage
     {
         Http::withHeaders($this->blobHeaders($mime))
             ->withBody($contents, $mime)
-            ->put(self::BLOB_URL.'/'.$this->encodePath($pathname))
+            ->put(self::BLOB_API_URL.'/?'.http_build_query(['pathname' => $pathname]))
             ->throw();
     }
 
@@ -171,15 +201,8 @@ class OrderFileStorage
     {
         $url = $this->blobPublicUrl($pathname);
 
-        if (str_starts_with($url, self::BLOB_URL.'/')) {
-            $response = Http::withHeaders($this->blobHeaders())
-                ->head($url);
-
-            return $response->successful();
-        }
-
         $response = Http::withHeaders($this->blobHeaders())
-            ->get(self::BLOB_URL, ['url' => $url]);
+            ->get(self::BLOB_API_URL, ['url' => $url]);
 
         return $response->successful();
     }
@@ -187,7 +210,7 @@ class OrderFileStorage
     private function blobDelete(string $pathname): void
     {
         Http::withHeaders($this->blobHeaders('application/json'))
-            ->post(self::BLOB_URL.'/delete', [
+            ->post(self::BLOB_API_URL.'/delete', [
                 'urls' => [$this->blobPublicUrl($pathname)],
             ]);
     }
