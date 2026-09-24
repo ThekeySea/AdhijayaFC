@@ -1,0 +1,57 @@
+FROM node:22-slim AS assets
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY vite.config.js ./
+COPY resources ./resources
+COPY public ./public
+ARG VITE_BROADCAST_DRIVER=reverb
+ARG VITE_PUSHER_APP_KEY=
+ARG VITE_PUSHER_APP_CLUSTER=ap1
+ARG VITE_REVERB_APP_KEY=
+ARG VITE_REVERB_HOST=
+ARG VITE_REVERB_PORT=
+ARG VITE_REVERB_SCHEME=https
+ARG VITE_APP_NAME=
+ENV VITE_BROADCAST_DRIVER=$VITE_BROADCAST_DRIVER \
+    VITE_PUSHER_APP_KEY=$VITE_PUSHER_APP_KEY \
+    VITE_PUSHER_APP_CLUSTER=$VITE_PUSHER_APP_CLUSTER \
+    VITE_REVERB_APP_KEY=$VITE_REVERB_APP_KEY \
+    VITE_REVERB_HOST=$VITE_REVERB_HOST \
+    VITE_REVERB_PORT=$VITE_REVERB_PORT \
+    VITE_REVERB_SCHEME=$VITE_REVERB_SCHEME \
+    VITE_APP_NAME=$VITE_APP_NAME
+RUN npm run build
+
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --no-progress
+
+FROM dunglas/frankenphp:1-php8.4-bookworm AS runtime
+RUN install-php-extensions intl zip pdo_pgsql
+WORKDIR /app
+COPY --from=vendor /app/vendor ./vendor
+COPY . .
+COPY --from=assets /app/public/build ./public/build
+COPY Caddyfile /etc/frankenphp/Caddyfile
+COPY --from=vendor /usr/bin/composer /usr/bin/composer
+RUN mkdir -p \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && composer dump-autoload --optimize --classmap-authoritative --no-dev \
+    && (php artisan package:discover --ansi || true) \
+    && rm -f /usr/bin/composer
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr \
+    CACHE_STORE=array \
+    SESSION_DRIVER=database \
+    QUEUE_CONNECTION=sync \
+    PORT=80
+USER www-data
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]

@@ -16,13 +16,12 @@ use App\Services\DeliveryPricing;
 use App\Services\MidtransService;
 use App\Services\OpeningHours;
 use App\Support\Cart;
+use App\Support\OrderFileStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -33,6 +32,7 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly MidtransService $midtrans,
         private readonly DeliveryPricing $deliveryPricing,
+        private readonly OrderFileStorage $storage,
     ) {}
 
     public function create(Request $request): View|RedirectResponse
@@ -263,13 +263,11 @@ class CheckoutController extends Controller
             }
 
             foreach ($request->file('files', []) as $file) {
-                $safeName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME), '-');
-                $extension = strtolower($file->getClientOriginalExtension());
-                $stored = $file->storeAs(
-                    'orders/'.$order->id,
-                    Str::uuid().'-'.$safeName.'.'.$extension,
-                    'local'
-                );
+                $stored = $this->storage->storeUploadedFile($file, 'orders/'.$order->id);
+
+                if ($stored === null) {
+                    continue;
+                }
 
                 OrderFile::create([
                     'order_id' => $order->id,
@@ -285,9 +283,7 @@ class CheckoutController extends Controller
                     $path = $cartFile['path'] ?? '';
                     $target = 'orders/'.$order->id.'/'.basename($path);
 
-                    if ($path !== '' && Storage::disk('local')->exists($path)) {
-                        Storage::disk('local')->move($path, $target);
-
+                    if ($path !== '' && $this->storage->exists($path) && $this->storage->move($path, $target)) {
                         OrderFile::create([
                             'order_id' => $order->id,
                             'file_name' => $cartFile['name'] ?? basename($path),

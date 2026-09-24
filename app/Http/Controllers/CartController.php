@@ -5,15 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Service;
 use App\Models\ServiceOption;
 use App\Support\Cart;
+use App\Support\OrderFileStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CartController extends Controller
 {
+    public function __construct(
+        private readonly OrderFileStorage $storage,
+    ) {}
+
     public function index(): View
     {
         $lines = Cart::lines();
@@ -224,15 +228,9 @@ class CartController extends Controller
         $stored = [];
 
         foreach ($files as $file) {
-            $safeName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME), '-');
-            $extension = strtolower($file->getClientOriginalExtension());
-            $path = $file->storeAs(
-                'cart-uploads',
-                Str::uuid().'-'.$safeName.'.'.$extension,
-                'local'
-            );
+            $path = $this->storage->storeUploadedFile($file, 'cart-uploads');
 
-            if ($path === false) {
+            if ($path === null) {
                 continue;
             }
 

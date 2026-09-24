@@ -159,7 +159,7 @@ function subscribe() {
                 console.info('[order-alerts] ws:', previous, '→', current);
             });
             connection.bind('connected', () => {
-                console.info('[order-alerts] terhubung ke Reverb');
+                console.info('[order-alerts] terhubung ke realtime');
             });
             connection.bind('error', (err) => {
                 console.warn('[order-alerts] ws error', err);

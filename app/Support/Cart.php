@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Models\Service;
 use App\Models\ServiceOption;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 
 class Cart
 {
@@ -212,11 +211,13 @@ class Cart
      */
     private static function deleteStoredFiles(array $files): void
     {
+        $storage = app(OrderFileStorage::class);
+
         foreach ($files as $file) {
             $path = $file['path'] ?? '';
 
-            if ($path !== '' && Storage::disk('local')->exists($path)) {
-                Storage::disk('local')->delete($path);
+            if ($path !== '') {
+                $storage->delete($path);
             }
         }
     }

@@ -77,4 +77,11 @@ return [
         public_path('storage') => storage_path('app/public'),
     ],
 
+    'order_files' => [
+        'driver' => env('ORDER_FILES_DRIVER', 'local'),
+        'token' => env('BLOB_READ_WRITE_TOKEN'),
+        'store_id' => env('BLOB_STORE_ID'),
+        'access' => env('BLOB_ACCESS', 'private'),
+    ],
+
 ];

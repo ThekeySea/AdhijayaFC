@@ -5,10 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\OrderFile;
+use App\Support\OrderFileStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderFileController extends Controller
@@ -18,9 +17,13 @@ class OrderFileController extends Controller
      */
     public const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx', 'txt', 'zip'];
 
-    public const MAX_FILE_KB = 5120;
+    public const MAX_FILE_KB = 4096;
 
     public const MAX_FILES = 5;
+
+    public function __construct(
+        private readonly OrderFileStorage $storage,
+    ) {}
 
     public function store(Request $request, Order $order): RedirectResponse
     {
@@ -52,13 +55,11 @@ class OrderFileController extends Controller
         }
 
         foreach ($validated['files'] as $file) {
-            $safeName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME), '-');
-            $extension = strtolower($file->getClientOriginalExtension());
-            $stored = $file->storeAs(
-                'orders/'.$order->id,
-                Str::uuid().'-'.$safeName.'.'.$extension,
-                'local'
-            );
+            $stored = $this->storage->storeUploadedFile($file, 'orders/'.$order->id);
+
+            if ($stored === null) {
+                continue;
+            }
 
             OrderFile::create([
                 'order_id' => $order->id,
@@ -82,7 +83,7 @@ class OrderFileController extends Controller
 
         abort_unless($file->existsOnDisk(), 404);
 
-        return Storage::disk('local')->download($file->storage_path, $file->file_name);
+        return $this->storage->download($file->storage_path, $file->file_name, $file->mime_type ?: 'application/octet-stream');
     }
 
     private function canUpload(Order $order): bool
