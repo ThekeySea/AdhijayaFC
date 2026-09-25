@@ -34,14 +34,14 @@
             </div>
 
             @if ($recentOrders->isEmpty())
-                <div class="mt-6 rounded-xl border border-dashed border-border p-6 text-center">
+                <div class="mt-6 rounded-xl border border-dashed border-border p-6 text-center" data-recent-orders-empty>
                     <p class="font-medium text-foreground">Belum ada pesanan masuk.</p>
                     <p class="mt-1 text-sm text-muted">Pesanan pelanggan akan tampil di sini.</p>
                 </div>
             @else
                 <ul class="mt-4 divide-y divide-border" data-recent-orders>
                     @foreach ($recentOrders as $order)
-                        <li>
+                        <li data-order-id="{{ $order->id }}">
                             <a href="{{ route('admin.orders.show', $order) }}" class="flex flex-wrap items-center justify-between gap-3 py-3 transition hover:bg-background/60">
                                 <div class="min-w-0">
                                     <p class="text-sm font-semibold text-foreground">{{ $order->order_number }}</p>

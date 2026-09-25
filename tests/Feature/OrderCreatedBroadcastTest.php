@@ -32,9 +32,16 @@ class OrderCreatedBroadcastTest extends TestCase
         ])->assertRedirect();
 
         Event::assertDispatched(OrderCreated::class, function (OrderCreated $event) use ($user): bool {
+            $payload = $event->broadcastWith();
+
             return $event->order->customer_id === $user->id
                 && $event->broadcastAs() === 'OrderCreated'
-                && $event->broadcastWith()['order_number'] === $event->order->order_number;
+                && $payload['order_number'] === $event->order->order_number
+                && $payload['id'] === $event->order->id
+                && $payload['items_count'] === 1
+                && $payload['status_label'] !== ''
+                && $payload['status_badge_class'] !== ''
+                && $payload['url'] !== '';
         });
     }
 

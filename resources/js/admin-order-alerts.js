@@ -76,6 +76,15 @@ function playTing() {
     }
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
 function showOrderToast(payload) {
     const existing = document.getElementById('order-created-toast');
     if (existing) {
@@ -88,10 +97,10 @@ function showOrderToast(payload) {
     toast.setAttribute('role', 'status');
     toast.innerHTML = `
         <p class="text-xs font-semibold uppercase tracking-wide text-primary">Pesanan baru</p>
-        <p class="mt-1 text-sm font-semibold text-foreground">${payload.order_number ?? ''}</p>
-        <p class="mt-0.5 text-sm text-muted">${payload.customer_name ?? ''} · ${payload.total ?? ''}</p>
+        <p class="mt-1 text-sm font-semibold text-foreground">${escapeHtml(payload.order_number)}</p>
+        <p class="mt-0.5 text-sm text-muted">${escapeHtml(payload.customer_name)} · ${escapeHtml(payload.total)}</p>
         <div class="mt-3 flex gap-2">
-            <a href="${payload.url ?? '#'}" class="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-white transition hover:opacity-90">Lihat detail</a>
+            <a href="${escapeHtml(payload.url ?? '#')}" class="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-white transition hover:opacity-90">Lihat detail</a>
             <button type="button" data-dismiss-toast class="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-semibold text-muted transition hover:text-foreground">Tutup</button>
         </div>
     `;
@@ -118,22 +127,54 @@ function bumpPendingCount() {
     }
 }
 
-function refreshRecentOrders() {
-    const list = document.querySelector('[data-recent-orders]');
+function renderRecentOrder(payload) {
+    if (!payload?.id || !payload?.url) {
+        return;
+    }
+
+    let list = document.querySelector('[data-recent-orders]');
+
     if (!list) {
+        const empty = document.querySelector('[data-recent-orders-empty]');
+        if (!empty) {
+            return;
+        }
+
+        list = document.createElement('ul');
+        list.className = 'mt-4 divide-y divide-border';
+        list.dataset.recentOrders = '';
+        empty.replaceWith(list);
+    }
+
+    const orderId = Number(payload.id);
+    if (Number.isNaN(orderId)) {
         return;
     }
 
-    list.dataset.stale = '1';
-    if (list.parentElement?.querySelector('[data-orders-stale-hint]')) {
+    if (list.querySelector(`[data-order-id="${orderId}"]`)) {
         return;
     }
 
-    const hint = document.createElement('div');
-    hint.dataset.ordersStaleHint = '1';
-    hint.className = 'mt-3 rounded-xl border border-dashed border-primary/40 bg-primary-soft px-3 py-2 text-xs font-medium text-primary';
-    hint.textContent = 'Ada pesanan baru — muat ulang untuk memperbarui daftar.';
-    list.parentElement?.appendChild(hint);
+    const item = document.createElement('li');
+    item.dataset.orderId = String(orderId);
+    item.innerHTML = `
+        <a href="${escapeHtml(payload.url)}" class="flex flex-wrap items-center justify-between gap-3 py-3 transition hover:bg-background/60">
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-foreground">${escapeHtml(payload.order_number)}</p>
+                <p class="mt-0.5 text-sm text-muted">${escapeHtml(payload.customer_name)} · ${escapeHtml(payload.items_count)} item</p>
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-1">
+                <span class="rounded-lg px-2 py-1 text-xs font-semibold ${escapeHtml(payload.status_badge_class)}">${escapeHtml(payload.status_label)}</span>
+                <span class="text-sm font-bold tabular-nums text-foreground">${escapeHtml(payload.total)}</span>
+            </div>
+        </a>
+    `;
+
+    list.prepend(item);
+
+    while (list.children.length > 5) {
+        list.lastElementChild?.remove();
+    }
 }
 
 function subscribe() {
@@ -147,7 +188,7 @@ function subscribe() {
                 playTing();
                 showOrderToast(payload ?? {});
                 bumpPendingCount();
-                refreshRecentOrders();
+                renderRecentOrder(payload ?? {});
             })
             .error((status) => {
                 console.warn('[order-alerts] channel auth error', status);
