@@ -127,6 +127,52 @@ function bumpPendingCount() {
     }
 }
 
+function adjustStatusCount(status, delta) {
+    if (!status) {
+        return;
+    }
+
+    const card = document.querySelector(`[data-status-count="${status}"]`);
+    if (!card) {
+        return;
+    }
+
+    const value = Number.parseInt(card.textContent.trim(), 10);
+    if (!Number.isNaN(value)) {
+        card.textContent = String(Math.max(0, value + delta));
+    }
+}
+
+function applyBadgeClasses(el, payload) {
+    const prev = String(payload.previous_status_badge_class ?? '').split(/\s+/).filter(Boolean);
+    const next = String(payload.status_badge_class ?? '').split(/\s+/).filter(Boolean);
+
+    if (prev.length) {
+        el.classList.remove(...prev);
+    }
+    if (next.length) {
+        el.classList.add(...next);
+    }
+    if (payload.status_label) {
+        el.textContent = payload.status_label;
+    }
+}
+
+function handleStatusUpdate(payload) {
+    if (!payload?.id) {
+        return;
+    }
+
+    adjustStatusCount(payload.previous_status, -1);
+    adjustStatusCount(payload.status, 1);
+
+    const item = document.querySelector(`[data-recent-orders] [data-order-id="${payload.id}"]`);
+    const badge = item?.querySelector('[data-status-badge]');
+    if (badge) {
+        applyBadgeClasses(badge, payload);
+    }
+}
+
 function renderRecentOrder(payload) {
     if (!payload?.id || !payload?.url) {
         return;
@@ -164,7 +210,7 @@ function renderRecentOrder(payload) {
                 <p class="mt-0.5 text-sm text-muted">${escapeHtml(payload.customer_name)} · ${escapeHtml(payload.items_count)} item</p>
             </div>
             <div class="flex shrink-0 flex-col items-end gap-1">
-                <span class="rounded-lg px-2 py-1 text-xs font-semibold ${escapeHtml(payload.status_badge_class)}">${escapeHtml(payload.status_label)}</span>
+                <span data-status-badge class="rounded-lg px-2 py-1 text-xs font-semibold ${escapeHtml(payload.status_badge_class)}">${escapeHtml(payload.status_label)}</span>
                 <span class="text-sm font-bold tabular-nums text-foreground">${escapeHtml(payload.total)}</span>
             </div>
         </a>
@@ -189,6 +235,9 @@ function subscribe() {
                 showOrderToast(payload ?? {});
                 bumpPendingCount();
                 renderRecentOrder(payload ?? {});
+            })
+            .listen('.OrderStatusUpdated', (payload) => {
+                handleStatusUpdate(payload ?? {});
             })
             .error((status) => {
                 console.warn('[order-alerts] channel auth error', status);

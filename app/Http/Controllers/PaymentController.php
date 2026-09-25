@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Events\OrderStatusUpdated;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\MidtransService;
@@ -93,6 +94,9 @@ class PaymentController extends Controller
             ], 422);
         }
 
+        $previousStatus = $order->status;
+        $previousPaymentStatus = $order->payment_status;
+
         DB::transaction(function () use ($order) {
             $payment = Payment::query()
                 ->where('order_id', $order->id)
@@ -116,6 +120,8 @@ class PaymentController extends Controller
                     : $order->status,
             ]);
         });
+
+        $this->broadcastStatusChange($order, $previousStatus, $previousPaymentStatus);
 
         return response()->json([
             'message' => 'Pembayaran dilewati. Pesanan dianggap selesai.',
@@ -147,6 +153,9 @@ class PaymentController extends Controller
         $providerTransactionId = $notification['transaction_id'] ?? null;
         $fraudStatus = $notification['fraud_status'] ?? null;
         $paymentType = $notification['payment_type'] ?? null;
+
+        $previousStatus = $order->status;
+        $previousPaymentStatus = $order->payment_status;
 
         DB::transaction(function () use ($order, $notification, $transactionStatus, $providerTransactionId, $fraudStatus, $paymentType) {
             $payment = Payment::query()
@@ -207,7 +216,26 @@ class PaymentController extends Controller
             }
         });
 
+        $this->broadcastStatusChange($order, $previousStatus, $previousPaymentStatus);
+
         return response()->json(['message' => 'OK']);
+    }
+
+    private function broadcastStatusChange(
+        Order $order,
+        OrderStatus $previousStatus,
+        ?PaymentStatus $previousPaymentStatus,
+    ): void {
+        if ($order->status === $previousStatus
+            && $order->payment_status === $previousPaymentStatus) {
+            return;
+        }
+
+        try {
+            OrderStatusUpdated::dispatch($order, $previousStatus, $previousPaymentStatus);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**

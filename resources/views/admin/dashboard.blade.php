@@ -7,10 +7,10 @@
 
     @php
         $stats = [
-            ['label' => 'Menunggu pembayaran', 'value' => $pendingCount, 'hint' => 'Pesanan dibuat', 'hintClass' => 'text-slate-700', 'status' => 'PENDING_PAYMENT', 'attr' => 'data-pending-count'],
-            ['label' => 'Perlu diproses', 'value' => $paidCount, 'hint' => 'Pembayaran', 'hintClass' => 'text-emerald-700', 'status' => 'PAID', 'attr' => ''],
-            ['label' => 'Sedang diproses', 'value' => $processingCount, 'hint' => 'Diproses', 'hintClass' => 'text-sky-700', 'status' => 'PROCESSING', 'attr' => ''],
-            ['label' => 'Siap diambil', 'value' => $readyCount, 'hint' => 'Siap diambil', 'hintClass' => 'text-amber-700', 'status' => 'READY', 'attr' => ''],
+            ['label' => 'Menunggu pembayaran', 'value' => $pendingCount, 'hint' => 'Pesanan dibuat', 'hintClass' => 'text-slate-700', 'status' => 'PENDING_PAYMENT', 'attr' => 'data-pending-count data-status-count="PENDING_PAYMENT"'],
+            ['label' => 'Perlu diproses', 'value' => $paidCount, 'hint' => 'Pembayaran', 'hintClass' => 'text-emerald-700', 'status' => 'PAID', 'attr' => 'data-status-count="PAID"'],
+            ['label' => 'Sedang diproses', 'value' => $processingCount, 'hint' => 'Diproses', 'hintClass' => 'text-sky-700', 'status' => 'PROCESSING', 'attr' => 'data-status-count="PROCESSING"'],
+            ['label' => 'Siap diambil', 'value' => $readyCount, 'hint' => 'Siap diambil', 'hintClass' => 'text-amber-700', 'status' => 'READY', 'attr' => 'data-status-count="READY"'],
         ];
         $kelolaClass = 'inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-foreground transition hover:border-primary/40 hover:bg-primary-soft hover:text-primary';
     @endphp
@@ -50,7 +50,7 @@
                                     </p>
                                 </div>
                                 <div class="flex shrink-0 flex-col items-end gap-1">
-                                    <span class="rounded-lg px-2 py-1 text-xs font-semibold {{ $order->status->badgeClass() }}">
+                                    <span data-status-badge class="rounded-lg px-2 py-1 text-xs font-semibold {{ $order->status->badgeClass() }}">
                                         {{ $order->status->label() }}
                                     </span>
                                     <span class="text-sm font-bold tabular-nums text-foreground">{{ $order->formattedTotal() }}</span>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\OrderStatus;
+use App\Events\OrderStatusUpdated;
 use App\Http\Controllers\Controller;
 use App\Lib\WhatsApp;
 use App\Models\Order;
@@ -76,10 +77,19 @@ class OrderController extends Controller
             );
         }
 
+        $previousStatus = $order->status;
+        $previousPaymentStatus = $order->payment_status;
+
         $order->update(['status' => $newStatus]);
         $order->load('customer');
 
         $shareUrl = $this->customerTrackingUrl($order);
+
+        try {
+            OrderStatusUpdated::dispatch($order, $previousStatus, $previousPaymentStatus);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()
             ->with(

@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/pesanan', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/pesanan/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('/pesanan/{order}/tracking', [OrderController::class, 'tracking'])->name('orders.tracking');
     Route::post('/pesanan/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('/pesanan/{order}/pay', [PaymentController::class, 'create'])->name('orders.pay');
     Route::post('/pesanan/{order}/payment/skip', [PaymentController::class, 'skip'])->name('orders.payment.skip');

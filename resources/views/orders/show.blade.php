@@ -23,14 +23,16 @@
                 <h1 class="mt-1 text-balance text-2xl font-bold tracking-tight text-foreground">{{ $order->order_number }}</h1>
                 <p class="mt-1 text-sm text-muted">Dibuat {{ $order->created_at->translatedFormat('d F Y, H:i') }}</p>
             </div>
-            <span class="rounded-lg px-3 py-1.5 text-sm font-semibold {{ $order->status->badgeClass() }}">
+            <span data-status-badge data-order-id="{{ $order->id }}" class="rounded-lg px-3 py-1.5 text-sm font-semibold {{ $order->status->badgeClass() }}">
                 {{ $order->status->label() }}
             </span>
         </div>
 
         <div class="mt-6 grid gap-6 lg:grid-cols-3">
             <div class="space-y-6 lg:col-span-2">
-                <x-order-tracking :order="$order" />
+                <div id="order-tracking-wrap">
+                    <x-order-tracking :order="$order" />
+                </div>
 
                 <div class="rounded-2xl border border-border bg-surface p-5 sm:p-6">
                     <h2 class="text-base font-semibold text-foreground">Item</h2>
@@ -207,7 +209,7 @@
 
                         <div class="flex items-center justify-between gap-4">
                             <dt class="text-muted">Pembayaran</dt>
-                            <dd class="font-medium text-foreground">{{ $order->payment_status->label() }}</dd>
+                            <dd data-order-payment-label class="font-medium text-foreground">{{ $order->payment_status->label() }}</dd>
                         </div>
                     </dl>
 
@@ -238,6 +240,7 @@
                     @if ($order->status->canBeCancelled() && ! auth()->user()->isAdmin())
                         <button
                             type="button"
+                            data-cancel-button
                             class="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-red-200 bg-surface px-5 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             x-data=""
                             x-on:click.prevent="$dispatch('open-modal', 'confirm-cancel-order')"

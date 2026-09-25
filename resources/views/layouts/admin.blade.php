@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-reverb="true">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-reverb="true" data-reverb-scope="admin">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
