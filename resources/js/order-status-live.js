@@ -80,11 +80,14 @@ function subscribe(userId) {
     try {
         window.Echo.private(`App.Models.User.${userId}`)
             .listen('.OrderStatusUpdated', (payload) => {
+                console.info('[order-status] event diterima', payload?.id, payload?.status);
                 handleStatusUpdate(payload ?? {});
             })
             .error((status) => {
                 console.warn('[order-status] channel auth error', status);
             });
+
+        console.info('[order-status] subscribe user', userId);
 
         return true;
     } catch (error) {
